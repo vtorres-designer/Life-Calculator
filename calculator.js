@@ -77,9 +77,9 @@ function createScenarioTab(id, name) {
     tab.onclick = () => switchScenarioTab(id);
     
     // Insert before the add button
-    const addBtn = tab.closest('.scenario-tabs-container') || scenarioTabsContainer.parentElement;
-    if (addBtn && addBtn.querySelector('.add-scenario-btn')) {
-        addBtn.insertBefore(tab, addBtn.querySelector('.add-scenario-btn'));
+    const addBtn = scenarioTabsContainer.parentElement.querySelector('.add-scenario-btn');
+    if (addBtn) {
+        scenarioTabsContainer.insertBefore(tab, addBtn);
     } else {
         scenarioTabsContainer.appendChild(tab);
     }
@@ -496,6 +496,7 @@ function switchScenarioTab(id) {
     });
     
     saveState();
+    updateComparisonTable();
 }
 
 function renameScenario(id, newName) {
@@ -1100,12 +1101,17 @@ function loadState() {
         
         if (scenarios.length > 0) {
             switchScenarioTab(activeScenarioId);
+        } else {
+            addScenario('Current');
         }
         
         updateComparisonTable();
         
     } catch (e) {
         console.error('Error loading state:', e);
+        scenarios = [];
+        nextScenarioId = 0;
+        addScenario('Current');
     }
 }
 
