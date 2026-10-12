@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Life Calculator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Life Calculator</h1>
+            <p class="subtitle">Financial Planning Tool</p>
+        </header>
+        
+        <div class="section">
+            <h2>Scenarios</h2>
+            <div class="scenario-selector">
+                <button class="scenario-btn active" onclick="switchScenario('current')">Current</button>
+                <button class="scenario-btn" onclick="switchScenario('no-car')">No Car</button>
+                <button class="scenario-btn" onclick="switchScenario('bike')">Bike</button>
+                <button class="scenario-btn" onclick="switchScenario('school')">Full-Time School</button>
+                <button class="scenario-btn" onclick="switchScenario('work')">Full-Time Work</button>
+                <button class="scenario-btn" onclick="switchScenario('save')">Save $12K Fast</button>
+            </div>
+        </div>
+        
+        <div class="calculator-grid">
+            <div class="section">
+                <h2>Income</h2>
+                <div class="input-group">
+                    <label>Primary Job ($/hr)</label>
+                    <input type="number" id="job1Rate" value="22.50" step="0.01" onchange="calculateAll()">
+                </div>
+                <div class="input-group">
+                    <label>Primary Hours/Week</label>
+                    <input type="number" id="job1Hours" value="24" onchange="calculateAll()">
+                </div>
+                <div class="input-group">
+                    <label>Secondary Job ($/hr)</label>
+                    <input type="number" id="job2Rate" value="18.00" step="0.01" onchange="calculateAll()">
+                </div>
+                <div class="input-group">
+                    <label>Secondary Hours/Week</label>
+                    <input type="number" id="job2Hours" value="8" onchange="calculateAll()">
+                </div>
+                <div class="input-group">
+                    <label>Other Income ($/mo)</label>
+                    <input type="number" id="otherIncome" value="0" onchange="calculateAll()">
+                </div>
+                <div class="input-group">
+                    <label>Tax Rate (%)</label>
+                    <input type="number" id="taxRate" value="16.78" step="0.01" onchange="calculateAll()">
+                </div>
+                <div class="result-card">
+                    <h3>Monthly Take-Home</h3>
+                    <div class="result-value" id="incomeResult">$0</div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>Housing</h2>
+                <div class="input-group">
+                    <label>Rent ($/mo)</label>
+                    <select id="rent" onchange="updateRent();calculateAll()">
+                        <option value="765">CoLab - $765</option>
+                        <option value="965">CoLab +$200</option>
+                        <option value="1285">CoLab 2BR</option>
+                        <option value="0">Custom</option>
+                    </select>
+                </div>
+                <div class="input-group" id="customRentGroup" style="display:none">
+                    <label>Custom Rent ($)</label>
+                    <input type="number" id="customRent" value="765" onchange="calculateAll()">
+                </div>
+                <div class="input-group">
+                    <label>Utilities ($)</label>
+                    <input type="number" id="utilities" value="100" onchange="calculateAll()">
+                </div>
+                <div class="input-group">
+                    <label>Internet ($)</label>
+                    <input type="number" id="internet" value="80" onchange="calculateAll()">
+                </div>
+                <div class="input-group">
+                    <label>Data Center Electricity ($)</label>
+                    <input type="number" id="electricity" value="200" onchange="calculateAll()">
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>Transportation</h2>
+                <div class="toggle-group">
+                    <button class="toggle-btn active" onclick="setTransport('car')">Car</button>
+                    <button class="toggle-btn" onclick="setTransport('bike')">Bike</button>
+                    <button class="toggle-btn" onclick="setTransport('rent')">Rent Out</button>
+                    <button class="toggle-btn" onclick="setTransport('none')">None</button>
+                </div>
+                
+                <div id="carFields">
+                    <div class="input-group">
+                        <label>Insurance ($)</label>
+                        <input type="number" id="insurance" value="260" onchange="calculateAll()">
+                    </div>
+                    <div class="input-group">
+                        <label>Gas ($)</label>
+                        <input type="number" id="gas" value="210" onchange="calculateAll()">
+                    </div>
+                    <div class="input-group">
+                        <label>Maintenance ($)</label>
+                        <input type="number" id="maintenance" value="20" onchange="calculateAll()">
+                    </div>
+                    <div class="input-group">
+                        <label>Tires ($)</label>
+                        <input type="number" id="tires" value="16.67" step="0.01" onchange="calculateAll()">
+                    </div>
+                    <div class="input-group">
+                        <label>Parking ($)</label>
+                        <input type="number" id="parking" value="200" onchange="calculateAll()">
+                    </div>
+                </div>
+                
+                <div id="bikeFields" style="display:none">
+                    <div class="input-group">
+                        <label>Bike Cost ($)</label>
+                        <input type="number" id="bikeCost" value="1500" onchange="calculateAll()">
+                    </div>
+                    <div class="input-group">
+                        <label>Bike Insurance ($)</label>
+                        <input type="number" id="bikeInsurance" value="40" onchange="calculateAll()">
+                    </div>
+                    <div class="input-group">
+                        <label>Bike Maintenance ($)</label>
+                        <input type="number" id="bikeMaintenance" value="20" onchange="calculateAll()">
+                    </div>
+                    <div class="input-group">
+                        <label>Bike Lifespan (months)</label>
+                        <input type="number" id="bikeLifespan" value="60" onchange="calculateAll()">
+                    </div>
+                </div>
+                
+                <div id="rentFields" style="display:none">
+                    <div class="input-group">
+                        <label>Rental Income ($)</label>
+                        <input type="number" id="rentalIncome" value="400" onchange="calculateAll()">
+                    </div>
+                    <div class="input-group">
+                        <label>Rental Insurance ($)</label>
+                        <input type="number" id="rentalInsurance" value="50" onchange="calculateAll()">
+                    </div>
+                </div>
+                
+                <div id="noneFields" style="display:none">
+                    <div class="input-group">
+                        <label>Rideshare ($)</label>
+                        <input type="number" id="rideShare" value="200" onchange="calculateAll()">
+                    </div>
+                    <div class="input-group">
+                        <label>Public Transit ($)</label>
+                        <input type="number" id="publicTransit" value="50" onchange="calculateAll()">
+                    </div>
+                    <div class="input-group">
+                        <label>Delivery Fees ($)</label>
+                        <input type="number" id="deliveryFees" value="30" onchange="calculateAll()">
+                    </div>
+                </div>
+                
+                <div class="result-card">
+                    <h3>Transport Cost</h3>
+                    <div class="result-value" id="transportResult">$0</div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>Food</h2>
+                <div class="toggle-group">
+                    <button class="toggle-btn active" onclick="setFood('everyplate')">EveryPlate</button>
+                    <button class="toggle-btn" onclick="setFood('groceries')">Groceries</button>
+                    <button class="toggle-btn" onclick="setFood('delivery')">Delivery</button>
+                </div>
+                
+                <div id="everyplateFields">
+                    <div class="input-group">
+                        <label>EveryPlate ($)</label>
+                        <input type="number" id="everyplateCost" value="560" onchange="calculateAll()">
+                    </div>
+                    <div class="input-group">
+                        <label>Delivery Fee ($)</label>
+                        <input type="number" id="everyplateDelivery" value="11" onchange="calculateAll()">
+                    </div>
+                    <div class="input-group">
+                        <label>GrubHub ($)</label>
+                        <input type="number" id="grubhub" value="100" onchange="calculateAll()">
+                    </div>
+                </div>
+                
+                <div id="groceriesFields" style="display:none">
+                    <div class="input-group">
+                        <label>Grocery Budget ($)</label>
+                        <input type="number" id="groceryBudget" value="400" onchange="calculateAll()">
+                    </div>
+                </div>
+                
+                <div id="deliveryFields" style="display:none">
+                    <div class="input-group">
+                        <label>Delivery Budget ($)</label>
+                        <input type="number" id="deliveryBudget" value="600" onchange="calculateAll()">
+                    </div>
+                    <div class="input-group">
+                        <label>Walmart+ ($)</label>
+                        <input type="number" id="walmartPlus" value="12.95" step="0.01" onchange="calculateAll()">
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <label><input type="checkbox" id="useSnap" checked onchange="calculateAll()"> Use SNAP</label>
+                </div>
+                <div class="input-group">
+                    <label>SNAP Benefit ($)</label>
+                    <input type="number" id="snapBenefit" value="306" onchange="calculateAll()">
+                </div>
+                <div class="input-group">
+                    <label><input type="checkbox" id="useFoodBank" onchange="calculateAll()"> Use Food Bank</label>
+                </div>
+                
+                <div class="result-card">
+                    <h3>Food Cost</h3>
+                    <div class="result-value" id="foodResult">$0</div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>Technology</h2>
+                <div class="input-group">
+                    <label>Mac Studio ($)</label>
+                    <input type="number" id="macStudio" value="400" onchange="calculateAll()">
+                </div>
+                <div class="input-group">
+                    <label>Claude Pro ($)</label>
+                    <input type="number" id="claudePro" value="20" onchange="calculateAll()">
+                </div>
+                <div class="input-group">
+                    <label>Phone ($)</label>
+                    <input type="number" id="phone" value="9" onchange="calculateAll()">
+                </div>
+                <div class="input-group">
+                    <label>Starlink ($)</label>
+                    <input type="number" id="starlink" value="0" onchange="calculateAll()">
+                </div>
+                <div class="result-card">
+                    <h3>Tech Cost</h3>
+                    <div class="result-value" id="techResult">$0</div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>Education</h2>
+                <div class="input-group">
+                    <label>School</label>
+                    <select id="school" onchange="updateSchool();calculateAll()">
+                        <option value="current">Current</option>
+                        <option value="msu">MSU</option>
+                        <option value="none">None</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Enrollment</label>
+                    <select id="enrollment" onchange="calculateAll()">
+                        <option value="full">Full-Time</option>
+                        <option value="part">Part-Time</option>
+                        <option value="none">None</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Annual Tuition ($)</label>
+                    <input type="number" id="tuition" value="11550" onchange="calculateAll()">
+                </div>
+                <div class="input-group">
+                    <label>Books & Supplies ($/yr)</label>
+                    <input type="number" id="books" value="1200" onchange="calculateAll()">
+                </div>
+                <div class="input-group">
+                    <label>FAFSA Grant ($/yr)</label>
+                    <input type="number" id="fafsaGrant" value="7395" onchange="calculateAll()">
+                </div>
+                <div class="input-group">
+                    <label>COF Stipend ($/yr)</label>
+                    <input type="number" id="cofStipend" value="0" onchange="calculateAll()">
+                </div>
+                <div class="input-group">
+                    <label>FAFSA Loan ($/yr)</label>
+                    <input type="number" id="fafsaLoan" value="0" onchange="calculateAll()">
+                </div>
+                <div class="result-card">
+                    <h3>Education Cost</h3>
+                    <div class="result-value" id="educationResult">$0</div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>Other Expenses</h2>
+                <div class="input-group">
+                    <label>Health Insurance ($)</label>
+                    <input type="number" id="healthInsurance" value="0" onchange="calculateAll()">
+                </div>
+                <div class="input-group">
+                    <label>Medical ($)</label>
+                    <input type="number" id="medical" value="50" onchange="calculateAll()">
+                </div>
+                <div class="input-group">
+                    <label>Entertainment ($)</label>
+                    <input type="number" id="entertainment" value="100" onchange="calculateAll()">
+                </div>
+                <div class="input-group">
+                    <label>Clothing ($)</label>
+                    <input type="number" id="clothing" value="50" onchange="calculateAll()">
+                </div>
+                <div class="input-group">
+                    <label>Miscellaneous ($)</label>
+                    <input type="number" id="miscellaneous" value="100" onchange="calculateAll()">
+                </div>
+                <div class="result-card">
+                    <h3>Other Cost</h3>
+                    <div class="result-value" id="otherResult">$0</div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>Benefits</h2>
+                <div class="input-group">
+                    <label><input type="checkbox" id="medicaid" checked onchange="calculateAll()"> Medicaid</label>
+                </div>
+                <div class="input-group">
+                    <label>Medicaid Savings ($)</label>
+                    <input type="number" id="medicaidSavings" value="200" onchange="calculateAll()">
+                </div>
+                <div class="input-group">
+                    <label>Other Benefits ($)</label>
+                    <input type="number" id="otherBenefits" value="0" onchange="calculateAll()">
+                </div>
+                <div class="result-card">
+                    <h3>Total Benefits</h3>
+                    <div class="result-value" id="benefitsResult">$0</div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>Savings Goals</h2>
+                <div class="input-group">
+                    <label>Data Center Cost ($)</label>
+                    <input type="number" id="dataCenterCost" value="12000" onchange="calculateAll()">
+                </div>
+                <div class="input-group">
+                    <label>Emergency Fund Goal ($)</label>
+                    <input type="number" id="emergencyFund" value="12000" onchange="calculateAll()">
+                </div>
+                <div class="input-group">
+                    <label>Current Savings ($)</label>
+                    <input type="number" id="currentSavings" value="0" onchange="calculateAll()">
+                </div>
+                <div class="result-card">
+                    <h3>Time to Save $12K</h3>
+                    <div class="result-value" id="timeToSave">0 months</div>
+                </div>
+                <div class="result-card">
+                    <h3>Monthly Savings Rate</h3>
+                    <div class="result-value" id="savingsRate">$0</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="results-section">
+            <h2>Financial Summary</h2>
+            <div class="results-grid">
+                <div class="result-card">
+                    <h3>Net Income</h3>
+                    <div class="result-value" id="netIncome">$0</div>
+                </div>
+                <div class="result-card">
+                    <h3>Total Expenses</h3>
+                    <div class="result-value" id="totalExpenses">$0</div>
+                </div>
+                <div class="result-card">
+                    <h3>Monthly Surplus</h3>
+                    <div class="result-value" id="surplus">$0</div>
+                </div>
+                <div class="result-card">
+                    <h3>Annual Surplus</h3>
+                    <div class="result-value" id="annualSurplus">$0</div>
+                </div>
+                <div class="result-card">
+                    <h3>Savings Rate</h3>
+                    <div class="result-value" id="savingsRatePct">0%</div>
+                </div>
+                <div class="result-card">
+                    <h3>4-Year Debt</h3>
+                    <div class="result-value" id="debt4Year">$0</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Scenario Comparison</h2>
+            <button onclick="calculateAllScenarios()">Calculate All Scenarios</button>
+            <div class="comparison-grid">
+                <div class="comparison-item">
+                    <h4>Current</h4>
+                    <div id="compCurrent">$0</div>
+                </div>
+                <div class="comparison-item">
+                    <h4>No Car</h4>
+                    <div id="compNoCar">$0</div>
+                </div>
+                <div class="comparison-item">
+                    <h4>Bike</h4>
+                    <div id="compBike">$0</div>
+                </div>
+                <div class="comparison-item">
+                    <h4>Full-Time Work</h4>
+                    <div id="compWork">$0</div>
+                </div>
+                <div class="comparison-item">
+                    <h4>Full-Time School</h4>
+                    <div id="compSchool">$0</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Insights</h2>
+            <div id="insights"></div>
+        </div>
+    </div>
+    
+    <script src="calculator.js"></script>
+</body>
+</html>
