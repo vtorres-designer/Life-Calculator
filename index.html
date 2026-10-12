@@ -274,10 +274,10 @@
                 <div class="section">
                     <h2>🚗 Transportation</h2>
                     <div class="toggle-group">
-                        <button class="toggle-btn active" onclick="setTransport(__ID__, 'car');event.stopPropagation()">Car</button>
-                        <button class="toggle-btn" onclick="setTransport(__ID__, 'bike');event.stopPropagation()">Bike</button>
-                        <button class="toggle-btn" onclick="setTransport(__ID__, 'rent');event.stopPropagation()">Rent Out</button>
-                        <button class="toggle-btn" onclick="setTransport(__ID__, 'none');event.stopPropagation()">None</button>
+                        <button class="toggle-btn active" data-mode="car" onclick="setTransport(__ID__, 'car');event.stopPropagation()">Car</button>
+                        <button class="toggle-btn" data-mode="bike" onclick="setTransport(__ID__, 'bike');event.stopPropagation()">Bike</button>
+                        <button class="toggle-btn" data-mode="rent" onclick="setTransport(__ID__, 'rent');event.stopPropagation()">Rent Out</button>
+                        <button class="toggle-btn" data-mode="none" onclick="setTransport(__ID__, 'none');event.stopPropagation()">None</button>
                     </div>
                     
                     <div class="transport-fields" id="scenario-__ID__-carFields">
@@ -370,9 +370,9 @@
                 <div class="section">
                     <h2>🍽️ Food</h2>
                     <div class="toggle-group">
-                        <button class="toggle-btn active" onclick="setFood(__ID__, 'everyplate');event.stopPropagation()">EveryPlate</button>
-                        <button class="toggle-btn" onclick="setFood(__ID__, 'groceries');event.stopPropagation()">Groceries</button>
-                        <button class="toggle-btn" onclick="setFood(__ID__, 'delivery');event.stopPropagation()">Delivery</button>
+                        <button class="toggle-btn active" data-mode="everyplate" onclick="setFood(__ID__, 'everyplate');event.stopPropagation()">EveryPlate</button>
+                        <button class="toggle-btn" data-mode="groceries" onclick="setFood(__ID__, 'groceries');event.stopPropagation()">Groceries</button>
+                        <button class="toggle-btn" data-mode="delivery" onclick="setFood(__ID__, 'delivery');event.stopPropagation()">Delivery</button>
                     </div>
                     
                     <div class="food-fields" id="scenario-__ID__-everyplateFields">

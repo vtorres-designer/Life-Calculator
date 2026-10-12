@@ -273,20 +273,22 @@ function setTransport(id, mode, silent = false) {
     const content = document.querySelector(`.scenario-content[data-scenario-id="${id}"]`);
     if (!content) return;
     
-    // Update buttons
-    content.querySelectorAll('.toggle-btn').forEach(btn => {
-        if (btn.onclick && btn.onclick.toString().includes('setTransport')) {
+    // Find the transportation section
+    const transportSection = Array.from(content.querySelectorAll('.section')).find(s => 
+        s.querySelector('h2') && s.querySelector('h2').textContent.includes('Transportation')
+    );
+    
+    if (transportSection) {
+        // Update all transport toggle buttons
+        transportSection.querySelectorAll('.toggle-btn').forEach(btn => {
             btn.classList.remove('active');
+        });
+        
+        // Activate the clicked button by matching data-mode
+        const activeBtn = transportSection.querySelector(`button.toggle-btn[data-mode="${mode}"]`);
+        if (activeBtn) {
+            activeBtn.classList.add('active');
         }
-    });
-    
-    // Find and activate the clicked button
-    const activeBtn = Array.from(content.querySelectorAll('.toggle-btn')).find(btn => {
-        return btn.onclick && btn.onclick.toString().includes(`setTransport(${id}, '${mode}')`);
-    });
-    
-    if (activeBtn) {
-        activeBtn.classList.add('active');
     }
     
     // Show/hide fields
@@ -312,20 +314,22 @@ function setFood(id, mode, silent = false) {
     const content = document.querySelector(`.scenario-content[data-scenario-id="${id}"]`);
     if (!content) return;
     
-    // Update buttons
-    content.querySelectorAll('.toggle-btn').forEach(btn => {
-        if (btn.onclick && btn.onclick.toString().includes('setFood')) {
+    // Find the food section
+    const foodSection = Array.from(content.querySelectorAll('.section')).find(s => 
+        s.querySelector('h2') && s.querySelector('h2').textContent.includes('Food')
+    );
+    
+    if (foodSection) {
+        // Update all food toggle buttons
+        foodSection.querySelectorAll('.toggle-btn').forEach(btn => {
             btn.classList.remove('active');
+        });
+        
+        // Activate the clicked button by matching data-mode
+        const activeBtn = foodSection.querySelector(`button.toggle-btn[data-mode="${mode}"]`);
+        if (activeBtn) {
+            activeBtn.classList.add('active');
         }
-    });
-    
-    // Find and activate the clicked button
-    const activeBtn = Array.from(content.querySelectorAll('.toggle-btn')).find(btn => {
-        return btn.onclick && btn.onclick.toString().includes(`setFood(${id}, '${mode}')`);
-    });
-    
-    if (activeBtn) {
-        activeBtn.classList.add('active');
     }
     
     // Show/hide fields
