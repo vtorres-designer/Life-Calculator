@@ -1,30 +1,388 @@
-// Global state
-let currentScenario = 'custom';
-let transportMode = 'car';
-let foodMode = 'everyplate';
+// ============================================
+// Life Calculator Pro - Multi-Scenario Financial Planner
+// ============================================
 
-// Initialize
+// Global state
+let scenarios = [];
+let nextScenarioId = 0;
+let activeScenarioId = 0;
+
+// DOM Elements
+let container = null;
+let scenarioTabsContainer = null;
+let scenarioContentContainer = null;
+let comparisonTableBody = null;
+
+// ============================================
+// Initialization
+// ============================================
+
 function init() {
-    updateRent();
-    setTransport('car');
-    setFood('everyplate');
-    calculateAll();
+    container = document.querySelector('.container');
+    scenarioTabsContainer = document.querySelector('.scenario-tabs');
+    scenarioContentContainer = document.querySelector('.scenario-content-container');
+    comparisonTableBody = document.getElementById('comparisonTableBody');
+    
+    // Create default scenario
+    addScenario('Current');
+    
+    // Load saved state if exists
+    loadState();
+    
+    // Update comparison table
+    updateComparisonTable();
 }
 
-// Call init when page loads
+// Run on page load
 window.onload = init;
 
-function getValue(id) {
-    const el = document.getElementById(id);
+// ============================================
+// Scenario Management
+// ============================================
+
+function addScenario(name = 'New Scenario') {
+    const id = nextScenarioId++;
+    const scenario = {
+        id: id,
+        name: name,
+        transportMode: 'car',
+        foodMode: 'everyplate',
+        data: {}
+    };
+    
+    scenarios.push(scenario);
+    
+    // Create tab
+    createScenarioTab(id, name);
+    
+    // Create content
+    createScenarioContent(id, name);
+    
+    // Switch to new scenario
+    switchScenarioTab(id);
+    
+    // Save state
+    saveState();
+    
+    return id;
+}
+
+function createScenarioTab(id, name) {
+    const tab = document.createElement('button');
+    tab.className = 'scenario-tab';
+    tab.dataset.scenarioId = id;
+    tab.innerHTML = `
+        <span class="tab-icon">📊</span>
+        <span class="tab-name">${name}</span>
+        <span class="tab-close" onclick="event.stopPropagation(); deleteScenario(${id})">×</span>
+    `;
+    tab.onclick = () => switchScenarioTab(id);
+    
+    // Insert before the add button
+    const addBtn = scenarioTabsContainer.parentElement.querySelector('.add-scenario-btn');
+    scenarioTabsContainer.insertBefore(tab, addBtn);
+}
+
+function createScenarioContent(id, name) {
+    // Get template
+    const template = document.getElementById('scenarioTemplate');
+    let content = template.innerHTML;
+    
+    // Replace placeholders
+    content = content.replace(/__ID__/g, id);
+    content = content.replace(/__NAME__/g, name);
+    
+    // Create container
+    const div = document.createElement('div');
+    div.className = 'scenario-content';
+    div.dataset.scenarioId = id;
+    div.innerHTML = content;
+    
+    // Add to container
+    scenarioContentContainer.appendChild(div);
+    
+    // Initialize form fields
+    initializeScenarioForm(id);
+}
+
+function initializeScenarioForm(id) {
+    const scenario = getScenario(id);
+    
+    // Set transport mode
+    setTransport(id, scenario.transportMode || 'car', true);
+    
+    // Set food mode
+    setFood(id, scenario.foodMode || 'everyplate', true);
+    
+    // Update rent field visibility
+    updateRent(id);
+    
+    // Calculate initial values
+    calculateScenario(id);
+}
+
+function switchScenarioTab(id) {
+    activeScenarioId = id;
+    
+    // Update tab styles
+    document.querySelectorAll('.scenario-tab').forEach(tab => {
+        tab.classList.remove('active');
+        if (parseInt(tab.dataset.scenarioId) === id) {
+            tab.classList.add('active');
+        }
+    });
+    
+    // Update content visibility
+    document.querySelectorAll('.scenario-content').forEach(content => {
+        content.classList.remove('active');
+        if (parseInt(content.dataset.scenarioId) === id) {
+            content.classList.add('active');
+        }
+    });
+    
+    // Save state
+    saveState();
+}
+
+function renameScenario(id, newName) {
+    const scenario = getScenario(id);
+    scenario.name = newName;
+    
+    // Update tab
+    const tab = document.querySelector(`.scenario-tab[data-scenario-id="${id}"] .tab-name`);
+    if (tab) {
+        tab.textContent = newName;
+    }
+    
+    saveState();
+    updateComparisonTable();
+}
+
+function duplicateScenario(id) {
+    const original = getScenario(id);
+    const newId = nextScenarioId++;
+    
+    const scenario = {
+        id: newId,
+        name: original.name + ' (Copy)',
+        transportMode: original.transportMode,
+        foodMode: original.foodMode,
+        data: JSON.parse(JSON.stringify(original.data))
+    };
+    
+    scenarios.push(scenario);
+    
+    // Create tab
+    createScenarioTab(newId, scenario.name);
+    
+    // Create content
+    createScenarioContent(newId, scenario.name);
+    
+    // Copy all form values
+    copyScenarioFormValues(id, newId);
+    
+    // Switch to new scenario
+    switchScenarioTab(newId);
+    
+    saveState();
+}
+
+function copyScenarioFormValues(fromId, toId) {
+    const fromContent = document.querySelector(`.scenario-content[data-scenario-id="${fromId}"]`);
+    const toContent = document.querySelector(`.scenario-content[data-scenario-id="${toId}"]`);
+    
+    if (fromContent && toContent) {
+        // Get all inputs from source
+        const inputs = fromContent.querySelectorAll('input, select');
+        
+        inputs.forEach(input => {
+            const name = input.className;
+            const toInput = toContent.querySelector(`.${name}`);
+            if (toInput) {
+                if (input.type === 'checkbox') {
+                    toInput.checked = input.checked;
+                } else {
+                    toInput.value = input.value;
+                }
+            }
+        });
+        
+        // Recalculate
+        calculateScenario(toId);
+    }
+}
+
+function deleteScenario(id) {
+    if (scenarios.length <= 1) {
+        alert('You must have at least one scenario');
+        return;
+    }
+    
+    // Remove from array
+    scenarios = scenarios.filter(s => s.id !== id);
+    
+    // Remove tab
+    const tab = document.querySelector(`.scenario-tab[data-scenario-id="${id}"]`);
+    if (tab) {
+        tab.remove();
+    }
+    
+    // Remove content
+    const content = document.querySelector(`.scenario-content[data-scenario-id="${id}"]`);
+    if (content) {
+        content.remove();
+    }
+    
+    // Switch to first scenario
+    if (activeScenarioId === id) {
+        switchScenarioTab(scenarios[0].id);
+    }
+    
+    saveState();
+    updateComparisonTable();
+}
+
+function getScenario(id) {
+    return scenarios.find(s => s.id === id);
+}
+
+// ============================================
+// Form Handlers
+// ============================================
+
+function updateRent(id) {
+    const content = document.querySelector(`.scenario-content[data-scenario-id="${id}"]`);
+    if (!content) return;
+    
+    const rentSelect = content.querySelector('.rent');
+    const customGroup = content.querySelector(`#scenario-${id}-customRentGroup`);
+    
+    if (rentSelect.value === '0') {
+        customGroup.style.display = 'block';
+    } else {
+        customGroup.style.display = 'none';
+    }
+    
+    calculateScenario(id);
+}
+
+function setTransport(id, mode, silent = false) {
+    const scenario = getScenario(id);
+    scenario.transportMode = mode;
+    
+    const content = document.querySelector(`.scenario-content[data-scenario-id="${id}"]`);
+    if (!content) return;
+    
+    // Update buttons
+    content.querySelectorAll('.toggle-btn').forEach(btn => {
+        if (btn.onclick && btn.onclick.toString().includes('setTransport')) {
+            btn.classList.remove('active');
+        }
+    });
+    
+    // Find and activate the clicked button
+    const activeBtn = Array.from(content.querySelectorAll('.toggle-btn')).find(btn => {
+        return btn.onclick && btn.onclick.toString().includes(`setTransport(${id}, '${mode}')`);
+    });
+    
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+    }
+    
+    // Show/hide fields
+    content.querySelectorAll(`.transport-fields`).forEach(field => {
+        field.classList.add('hidden');
+    });
+    
+    const fieldToShow = content.querySelector(`#scenario-${id}-${mode}Fields`);
+    if (fieldToShow) {
+        fieldToShow.classList.remove('hidden');
+    }
+    
+    if (!silent) {
+        calculateScenario(id);
+        saveState();
+    }
+}
+
+function setFood(id, mode, silent = false) {
+    const scenario = getScenario(id);
+    scenario.foodMode = mode;
+    
+    const content = document.querySelector(`.scenario-content[data-scenario-id="${id}"]`);
+    if (!content) return;
+    
+    // Update buttons
+    content.querySelectorAll('.toggle-btn').forEach(btn => {
+        if (btn.onclick && btn.onclick.toString().includes('setFood')) {
+            btn.classList.remove('active');
+        }
+    });
+    
+    // Find and activate the clicked button
+    const activeBtn = Array.from(content.querySelectorAll('.toggle-btn')).find(btn => {
+        return btn.onclick && btn.onclick.toString().includes(`setFood(${id}, '${mode}')`);
+    });
+    
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+    }
+    
+    // Show/hide fields
+    content.querySelectorAll(`.food-fields`).forEach(field => {
+        field.classList.add('hidden');
+    });
+    
+    const fieldToShow = content.querySelector(`#scenario-${id}-${mode}Fields`);
+    if (fieldToShow) {
+        fieldToShow.classList.remove('hidden');
+    }
+    
+    if (!silent) {
+        calculateScenario(id);
+        saveState();
+    }
+}
+
+function updateSchool(id) {
+    const content = document.querySelector(`.scenario-content[data-scenario-id="${id}"]`);
+    if (!content) return;
+    
+    const school = content.querySelector('.school').value;
+    const tuitionInput = content.querySelector('.tuition');
+    const grantInput = content.querySelector('.fafsaGrant');
+    
+    if (school === 'msu') {
+        tuitionInput.value = 9150;
+        grantInput.value = 7395;
+    } else if (school === 'current') {
+        tuitionInput.value = 11550;
+        grantInput.value = 7395;
+    } else {
+        tuitionInput.value = 0;
+        grantInput.value = 0;
+    }
+    
+    calculateScenario(id);
+}
+
+// ============================================
+// Calculation Engine
+// ============================================
+
+function getValue(content, className) {
+    const el = content.querySelector(`.${className}`);
+    if (!el) return 0;
     return parseFloat(el.value) || 0;
 }
 
-function getChecked(id) {
-    return document.getElementById(id).checked;
+function getChecked(content, className) {
+    const el = content.querySelector(`.${className}`);
+    return el ? el.checked : false;
 }
 
 function formatCurrency(amount) {
-    if (!amount) return '$0';
+    if (!amount || amount === 0) return '$0';
     const rounded = Math.round(amount * 100) / 100;
     return '$' + rounded.toLocaleString('en-US', {
         minimumFractionDigits: 0,
@@ -32,464 +390,427 @@ function formatCurrency(amount) {
     });
 }
 
-function updateRent() {
-    const rentSelect = document.getElementById('rent');
-    const customGroup = document.getElementById('customRentGroup');
+function calculateScenario(id) {
+    const content = document.querySelector(`.scenario-content[data-scenario-id="${id}"]`);
+    if (!content) return null;
     
-    if (rentSelect.value === '0') {
-        customGroup.style.display = 'block';
-    } else {
-        customGroup.style.display = 'none';
-    }
-}
-
-function setTransport(mode) {
-    transportMode = mode;
+    const scenario = getScenario(id);
+    const globalTaxRate = parseFloat(document.getElementById('globalTaxRate').value) || 0;
+    const dataCenterCost = parseFloat(document.getElementById('globalDataCenterCost').value) || 12000;
+    const emergencyFund = parseFloat(document.getElementById('globalEmergencyFund').value) || 12000;
     
-    // Update buttons
-    document.querySelectorAll('.toggle-btn').forEach(btn => {
-        if (btn.onclick.toString().includes('setTransport')) {
-            btn.classList.remove('active');
-        }
-    });
-    event.target.classList.add('active');
-    
-    // Hide all
-    document.getElementById('carFields').style.display = 'none';
-    document.getElementById('bikeFields').style.display = 'none';
-    document.getElementById('rentFields').style.display = 'none';
-    document.getElementById('noneFields').style.display = 'none';
-    
-    // Show selected
-    if (mode === 'car') {
-        document.getElementById('carFields').style.display = 'block';
-    } else if (mode === 'bike') {
-        document.getElementById('bikeFields').style.display = 'block';
-    } else if (mode === 'rent') {
-        document.getElementById('rentFields').style.display = 'block';
-    } else if (mode === 'none') {
-        document.getElementById('noneFields').style.display = 'block';
-    }
-    
-    calculateAll();
-}
-
-function setFood(mode) {
-    foodMode = mode;
-    
-    // Update buttons
-    document.querySelectorAll('.toggle-btn').forEach(btn => {
-        if (btn.onclick.toString().includes('setFood')) {
-            btn.classList.remove('active');
-        }
-    });
-    event.target.classList.add('active');
-    
-    // Hide all
-    document.getElementById('everyplateFields').style.display = 'none';
-    document.getElementById('groceriesFields').style.display = 'none';
-    document.getElementById('deliveryFields').style.display = 'none';
-    
-    // Show selected
-    if (mode === 'everyplate') {
-        document.getElementById('everyplateFields').style.display = 'block';
-    } else if (mode === 'groceries') {
-        document.getElementById('groceriesFields').style.display = 'block';
-    } else if (mode === 'delivery') {
-        document.getElementById('deliveryFields').style.display = 'block';
-    }
-    
-    calculateAll();
-}
-
-function updateSchool() {
-    const school = document.getElementById('school').value;
-    if (school === 'msu') {
-        document.getElementById('tuition').value = 9150;
-        document.getElementById('fafsaGrant').value = 7395;
-    } else if (school === 'current') {
-        document.getElementById('tuition').value = 11550;
-        document.getElementById('fafsaGrant').value = 7395;
-    } else {
-        document.getElementById('tuition').value = 0;
-        document.getElementById('fafsaGrant').value = 0;
-    }
-}
-
-function calculateIncome() {
-    const job1Rate = getValue('job1Rate');
-    const job1Hours = getValue('job1Hours');
-    const job2Rate = getValue('job2Rate');
-    const job2Hours = getValue('job2Hours');
-    const otherIncome = getValue('otherIncome');
-    const taxRate = getValue('taxRate');
+    // Calculate income
+    const job1Rate = getValue(content, 'job1Rate');
+    const job1Hours = getValue(content, 'job1Hours');
+    const job2Rate = getValue(content, 'job2Rate');
+    const job2Hours = getValue(content, 'job2Hours');
+    const otherIncome = getValue(content, 'otherIncome');
     
     const weeklyEarnings = job1Rate * job1Hours + job2Rate * job2Hours;
-    const monthlyGross = weeklyEarnings * 4.345; // 52 weeks / 12 months
+    const monthlyGross = weeklyEarnings * 4.345;
     const totalGross = monthlyGross + otherIncome;
-    const taxAmount = totalGross * (taxRate / 100);
+    const taxAmount = totalGross * (globalTaxRate / 100);
     const netIncome = totalGross - taxAmount;
     
-    document.getElementById('incomeResult').textContent = formatCurrency(netIncome);
+    // Update income display
+    const incomeEl = content.querySelector(`#scenario-${id}-income`);
+    if (incomeEl) incomeEl.textContent = formatCurrency(netIncome);
     
-    return { gross: totalGross, net: netIncome, tax: taxAmount };
-}
-
-function calculateTransportation() {
-    let cost = 0;
-    
-    if (transportMode === 'car') {
-        cost = getValue('insurance') + getValue('gas') + getValue('maintenance') + 
-               getValue('tires') + getValue('parking');
-    } else if (transportMode === 'bike') {
-        const bikeCost = getValue('bikeCost');
-        const lifespan = getValue('bikeLifespan') || 1;
-        cost = bikeCost / lifespan + getValue('bikeInsurance') + getValue('bikeMaintenance');
-    } else if (transportMode === 'rent') {
-        cost = getValue('rentalInsurance') + getValue('rentalMaintenance') - getValue('rentalIncome');
-    } else if (transportMode === 'none') {
-        cost = getValue('rideShare') + getValue('publicTransit') + getValue('deliveryFees');
-    }
-    
-    document.getElementById('transportResult').textContent = formatCurrency(cost);
-    return cost;
-}
-
-function calculateFood() {
-    let cost = 0;
-    const useSnap = getChecked('useSnap');
-    const snapBenefit = getValue('snapBenefit');
-    const useFoodBank = getChecked('useFoodBank');
-    const foodBankSavings = useFoodBank ? 150 : 0;
-    
-    if (foodMode === 'everyplate') {
-        cost = getValue('everyplateCost') + getValue('everyplateDelivery') + getValue('grubhub');
-    } else if (foodMode === 'groceries') {
-        cost = getValue('groceryBudget');
-    } else if (foodMode === 'delivery') {
-        cost = getValue('deliveryBudget') + getValue('walmartPlus');
-    }
-    
-    if (useSnap) {
-        cost -= snapBenefit;
-    }
-    cost -= foodBankSavings;
-    cost = Math.max(cost, 0);
-    
-    document.getElementById('foodResult').textContent = formatCurrency(cost);
-    return cost;
-}
-
-function calculateTechnology() {
-    const cost = getValue('macStudio') + getValue('claudePro') + getValue('phone') + 
-                getValue('starlink') + getValue('otherTech');
-    document.getElementById('techResult').textContent = formatCurrency(cost);
-    return cost;
-}
-
-function calculateHousing() {
-    const rentSelect = document.getElementById('rent');
+    // Calculate housing
+    const rentSelect = content.querySelector('.rent');
     let rent = 0;
     if (rentSelect.value === '0') {
-        rent = getValue('customRent');
+        rent = getValue(content, 'customRent');
     } else {
         rent = parseFloat(rentSelect.value) || 0;
     }
+    const utilities = getValue(content, 'utilities');
+    const internet = getValue(content, 'internet');
+    const electricity = getValue(content, 'electricity');
+    const housingTotal = rent + utilities + internet + electricity;
     
-    return rent + getValue('utilities') + getValue('internet') + getValue('electricity');
-}
-
-function calculateEducation() {
-    const tuition = getValue('tuition');
-    const books = getValue('books');
-    const grant = getValue('fafsaGrant');
-    const stipend = getValue('cofStipend');
-    const loan = getValue('fafsaLoan');
+    // Calculate transportation
+    let transportTotal = 0;
+    const transportMode = scenario.transportMode || 'car';
+    
+    if (transportMode === 'car') {
+        transportTotal = getValue(content, 'insurance') + getValue(content, 'gas') + 
+                        getValue(content, 'maintenance') + getValue(content, 'tires') + 
+                        getValue(content, 'parking');
+    } else if (transportMode === 'bike') {
+        const bikeCost = getValue(content, 'bikeCost');
+        const lifespan = getValue(content, 'bikeLifespan') || 1;
+        transportTotal = bikeCost / lifespan + getValue(content, 'bikeInsurance') + 
+                        getValue(content, 'bikeMaintenance');
+    } else if (transportMode === 'rent') {
+        transportTotal = getValue(content, 'rentalInsurance') + getValue(content, 'rentalMaintenance') - 
+                        getValue(content, 'rentalIncome');
+    } else if (transportMode === 'none') {
+        transportTotal = getValue(content, 'rideShare') + getValue(content, 'publicTransit') + 
+                        getValue(content, 'deliveryFees');
+    }
+    
+    const transportEl = content.querySelector(`#scenario-${id}-transport`);
+    if (transportEl) transportEl.textContent = formatCurrency(transportTotal);
+    
+    // Calculate food
+    let foodTotal = 0;
+    const foodMode = scenario.foodMode || 'everyplate';
+    const useSnap = getChecked(content, 'useSnap');
+    const snapBenefit = getValue(content, 'snapBenefit');
+    const useFoodBank = getChecked(content, 'useFoodBank');
+    const foodBankSavings = useFoodBank ? 150 : 0;
+    
+    if (foodMode === 'everyplate') {
+        foodTotal = getValue(content, 'everyplateCost') + getValue(content, 'everyplateDelivery') + 
+                   getValue(content, 'grubhub');
+    } else if (foodMode === 'groceries') {
+        foodTotal = getValue(content, 'groceryBudget');
+    } else if (foodMode === 'delivery') {
+        foodTotal = getValue(content, 'deliveryBudget') + getValue(content, 'walmartPlus');
+    }
+    
+    if (useSnap) {
+        foodTotal -= snapBenefit;
+    }
+    foodTotal -= foodBankSavings;
+    foodTotal = Math.max(foodTotal, 0);
+    
+    const foodEl = content.querySelector(`#scenario-${id}-food`);
+    if (foodEl) foodEl.textContent = formatCurrency(foodTotal);
+    
+    // Calculate technology
+    const techTotal = getValue(content, 'macStudio') + getValue(content, 'claudePro') + 
+                     getValue(content, 'phone') + getValue(content, 'starlink');
+    const techEl = content.querySelector(`#scenario-${id}-tech`);
+    if (techEl) techEl.textContent = formatCurrency(techTotal);
+    
+    // Calculate education
+    const tuition = getValue(content, 'tuition');
+    const books = getValue(content, 'books');
+    const grant = getValue(content, 'fafsaGrant');
+    const stipend = getValue(content, 'cofStipend');
+    const loan = getValue(content, 'fafsaLoan');
+    const loanInterest = getValue(content, 'loanInterest');
+    const schoolYears = getValue(content, 'schoolYears') || 4;
     
     const totalCost = tuition + books;
     const totalFunding = grant + stipend + loan;
-    const monthly = (totalCost - totalFunding) / 12;
+    const eduMonthly = (totalCost - totalFunding) / 12;
     
-    document.getElementById('educationResult').textContent = formatCurrency(monthly);
-    return monthly;
-}
-
-function calculateOther() {
-    const cost = getValue('healthInsurance') + getValue('medical') + getValue('entertainment') + 
-                getValue('clothing') + getValue('miscellaneous');
-    document.getElementById('otherResult').textContent = formatCurrency(cost);
-    return cost;
-}
-
-function calculateBenefits() {
-    let total = 0;
-    if (getChecked('useSnap')) {
-        total += getValue('snapBenefit');
+    const eduEl = content.querySelector(`#scenario-${id}-education`);
+    if (eduEl) eduEl.textContent = formatCurrency(eduMonthly);
+    
+    // Calculate other
+    const otherTotal = getValue(content, 'healthInsurance') + getValue(content, 'medical') + 
+                      getValue(content, 'entertainment') + getValue(content, 'clothing') + 
+                      getValue(content, 'miscellaneous');
+    const otherEl = content.querySelector(`#scenario-${id}-other`);
+    if (otherEl) otherEl.textContent = formatCurrency(otherTotal);
+    
+    // Calculate benefits
+    let benefitsTotal = 0;
+    if (getChecked(content, 'medicaid')) {
+        benefitsTotal += getValue(content, 'medicaidSavings');
     }
-    if (getChecked('medicaid')) {
-        total += getValue('medicaidSavings');
+    benefitsTotal += getValue(content, 'otherBenefits');
+    if (useSnap) {
+        benefitsTotal += snapBenefit;
     }
-    total += getValue('otherBenefits');
     
-    document.getElementById('benefitsResult').textContent = formatCurrency(total);
-    return total;
-}
-
-function calculateTotalExpenses() {
-    return calculateHousing() + calculateTransportation() + calculateFood() + 
-           calculateTechnology() + calculateEducation() + calculateOther();
-}
-
-function calculateSavings() {
-    const income = calculateIncome().net;
-    const expenses = calculateTotalExpenses();
-    const surplus = income - expenses;
+    const benefitsEl = content.querySelector(`#scenario-${id}-benefits`);
+    if (benefitsEl) benefitsEl.textContent = formatCurrency(benefitsTotal);
     
-    const dataCenterCost = getValue('dataCenterCost');
-    const emergencyFund = getValue('emergencyFund');
-    const currentSavings = getValue('currentSavings');
+    // Calculate total expenses
+    const totalExpenses = housingTotal + transportTotal + foodTotal + techTotal + eduMonthly + otherTotal;
+    
+    // Calculate surplus
+    const surplus = netIncome - totalExpenses;
+    const annualSurplus = surplus * 12;
+    
+    // Update summary cards
+    updateElement(content, `scenario-${id}-net`, formatCurrency(surplus));
+    updateElement(content, `scenario-${id}-annual`, formatCurrency(annualSurplus));
+    
+    // Update summary card colors
+    const netEl = content.querySelector(`#scenario-${id}-net`);
+    if (netEl) {
+        netEl.className = surplus >= 0 ? 'summary-value positive' : 'summary-value negative';
+    }
+    
+    // Calculate 4-year projection
+    calculate4YearProjection(id, content, surplus, annualSurplus, loan, loanInterest, schoolYears, dataCenterCost, emergencyFund);
+    
+    // Calculate spend analyzer
+    calculateSpendAnalyzer(id, content, housingTotal, transportTotal, foodTotal, techTotal, eduMonthly, otherTotal, totalExpenses);
+    
+    // Calculate time to save
+    const currentSavings = getValue(content, 'currentSavings');
     const totalGoal = dataCenterCost + emergencyFund;
     const remaining = totalGoal - currentSavings;
     
-    let months = 0;
+    let monthsToSave = 0;
     if (surplus > 0 && remaining > 0) {
-        months = Math.ceil(remaining / surplus);
+        monthsToSave = Math.ceil(remaining / surplus);
     } else if (surplus <= 0) {
-        months = Infinity;
+        monthsToSave = Infinity;
     }
     
-    document.getElementById('timeToSave').textContent = months === Infinity ? 'Never' : months + ' months';
-    document.getElementById('savingsRate').textContent = formatCurrency(surplus);
+    updateElement(content, `scenario-${id}-time`, monthsToSave === Infinity ? 'Never' : monthsToSave + ' months');
     
-    return { surplus: surplus, months: months };
+    // Update 4-year projection label
+    const fourYearLabel = content.querySelector(`#scenario-${id}-4year-label`);
+    if (fourYearLabel) {
+        fourYearLabel.textContent = surplus >= 0 ? 'Net position' : 'Debt accumulated';
+    }
+    
+    // Store results in scenario
+    scenario.data = {
+        netIncome: netIncome,
+        totalExpenses: totalExpenses,
+        surplus: surplus,
+        annualSurplus: annualSurplus,
+        housing: housingTotal,
+        transport: transportTotal,
+        food: foodTotal,
+        tech: techTotal,
+        education: eduMonthly,
+        other: otherTotal,
+        biggestExpense: getBiggestExpense(housingTotal, transportTotal, foodTotal, techTotal, eduMonthly, otherTotal)
+    };
+    
+    // Update comparison table
+    updateComparisonTable();
+    
+    return scenario.data;
 }
 
-function calculateAll() {
-    const income = calculateIncome();
-    const expenses = calculateTotalExpenses();
-    const surplus = income.net - expenses;
-    const savings = calculateSavings();
-    const benefits = calculateBenefits();
+function getBiggestExpense(housing, transport, food, tech, education, other) {
+    const expenses = {
+        'Housing': housing,
+        'Transportation': transport,
+        'Food': food,
+        'Technology': tech,
+        'Education': education,
+        'Other': other
+    };
     
-    // Update summary
-    document.getElementById('netIncome').textContent = formatCurrency(income.net);
-    document.getElementById('totalExpenses').textContent = formatCurrency(expenses);
+    return Object.entries(expenses).reduce((max, [key, value]) => 
+        value > max.value ? { key, value } : max,
+        { key: 'Housing', value: 0 }
+    ).key;
+}
+
+function calculate4YearProjection(id, content, monthlySurplus, annualSurplus, loan, loanInterest, schoolYears, dataCenterCost, emergencyFund) {
+    const currentSavings = getValue(content, 'currentSavings');
+    const totalGoal = dataCenterCost + emergencyFund;
     
-    if (surplus >= 0) {
-        document.getElementById('surplus').textContent = formatCurrency(surplus);
-        document.getElementById('surplus').className = 'result-value positive';
-    } else {
-        document.getElementById('surplus').textContent = formatCurrency(surplus);
-        document.getElementById('surplus').className = 'result-value negative';
-    }
-    
-    document.getElementById('annualSurplus').textContent = formatCurrency(surplus * 12);
-    
-    const savingsRate = income.net > 0 ? (surplus / income.net) * 100 : 0;
-    document.getElementById('savingsRatePct').textContent = savingsRate.toFixed(1) + '%';
-    
-    // Debt projection
+    let savings = currentSavings;
     let debt = 0;
-    if (surplus < 0) {
-        debt = Math.abs(surplus) * 48;
+    let totalLoanDebt = 0;
+    
+    // Calculate loan debt
+    if (loan > 0 && schoolYears > 0) {
+        totalLoanDebt = loan * schoolYears * (1 + loanInterest / 100);
     }
     
-    const loan = getValue('fafsaLoan');
-    const interest = getValue('loanInterest');
-    const years = getValue('schoolYears') || 4;
-    
-    if (loan > 0) {
-        debt += loan * years * (1 + interest / 100);
+    // If we have a deficit, we're accumulating debt
+    if (monthlySurplus < 0) {
+        debt = Math.abs(monthlySurplus) * 48; // 4 years * 12 months
     }
     
-    document.getElementById('debt4Year').textContent = formatCurrency(debt);
+    // Calculate year-by-year
+    for (let year = 1; year <= 4; year++) {
+        const yearSavings = savings + (monthlySurplus * 12);
+        const yearDebt = debt;
+        const netWorth = yearSavings - yearDebt - totalLoanDebt;
+        
+        // Update elements
+        updateElement(content, `scenario-${id}-savings-y${year}`, formatCurrency(yearSavings));
+        updateElement(content, `scenario-${id}-debt-y${year}`, formatCurrency(yearDebt));
+        updateElement(content, `scenario-${id}-networth-y${year}`, formatCurrency(netWorth));
+        
+        savings = yearSavings;
+    }
     
-    // Generate insights
-    generateInsights(income, expenses, surplus, savings);
+    // Update 4-year summary
+    const fourYearNet = currentSavings + (monthlySurplus * 48) - totalLoanDebt;
+    updateElement(content, `scenario-${id}-4year`, formatCurrency(fourYearNet));
+    
+    const fourYearEl = content.querySelector(`#scenario-${id}-4year`);
+    if (fourYearEl) {
+        fourYearEl.className = fourYearNet >= 0 ? 'summary-value positive' : 'summary-value negative';
+    }
 }
 
-function generateInsights(income, expenses, surplus, savings) {
-    let html = '';
-    
-    // Transportation
-    const transportCost = calculateTransportation();
-    if (transportMode === 'car') {
-        html += `<div class="insight-item">
-            <h4>Transportation</h4>
-            <p>Your car costs ${formatCurrency(transportCost*12)} per year. 
-            Selling it could free up significant funds. Consider if alternatives 
-            would cost less.</p>
-        </div>`;
+function calculateSpendAnalyzer(id, content, housing, transport, food, tech, education, other, total) {
+    if (total === 0) {
+        // Set all to 0%
+        ['housing', 'transport', 'food', 'tech', 'education', 'other'].forEach(category => {
+            updateElement(content, `scenario-${id}-spend-${category}-pct`, '0%');
+            updateElement(content, `scenario-${id}-spend-${category}-amt`, '$0');
+            const bar = content.querySelector(`#scenario-${id}-spend-${category}-bar`);
+            if (bar) bar.style.width = '0%';
+        });
+        return;
     }
     
-    // Food
-    const foodCost = calculateFood();
-    const useSnap = getChecked('useSnap');
-    html += `<div class="insight-item">
-        <h4>Food</h4>
-        <p>Your food cost is ${formatCurrency(foodCost)} per month. 
-        ${useSnap ? 'SNAP benefits help reduce this cost.' : 'You might qualify for SNAP benefits.'}
-        ${getChecked('useFoodBank') ? 'Food bank saves ~$150/month.' : ''}</p>
-    </div>`;
+    const categories = [
+        { name: 'housing', value: housing },
+        { name: 'transport', value: transport },
+        { name: 'food', value: food },
+        { name: 'tech', value: tech },
+        { name: 'education', value: education },
+        { name: 'other', value: other }
+    ];
     
-    // Savings
-    if (savings.months === Infinity) {
-        html += `<div class="insight-item">
-            <h4>Warning!</h4>
-            <p>You have a monthly deficit of ${formatCurrency(-savings.surplus)}. 
-            You cannot reach your $12K goal at this rate. Consider cutting expenses 
-            or increasing income.</p>
-        </div>`;
-    } else if (savings.months > 0) {
-        html += `<div class="insight-item">
-            <h4>Savings Goal</h4>
-            <p>At your current rate, you'll reach your $12K goal in ${savings.months} months. 
-            To reach it faster, save an additional ${formatCurrency(12000/savings.months - savings.surplus)}/month.</p>
-        </div>`;
-    }
-    
-    // Benefits
-    if (income.gross < 2660) {
-        html += `<div class="insight-item">
-            <h4>Benefits</h4>
-            <p>Your income (${formatCurrency(income.gross)}) qualifies you for SNAP. 
-            Remember: SNAP decreases by $0.30 for every $1.00 income increase.</p>
-        </div>`;
-    }
-    
-    document.getElementById('insights').innerHTML = html;
-}
-
-function switchScenario(scenario) {
-    currentScenario = scenario;
-    
-    document.querySelectorAll('.scenario-btn').forEach(btn => {
-        btn.classList.remove('active');
+    categories.forEach(cat => {
+        const pct = (cat.value / total) * 100;
+        const bar = content.querySelector(`#scenario-${id}-spend-${cat.name}-bar`);
+        
+        updateElement(content, `scenario-${id}-spend-${cat.name}-pct`, pct.toFixed(1) + '%');
+        updateElement(content, `scenario-${id}-spend-${cat.name}-amt`, formatCurrency(cat.value));
+        
+        if (bar) {
+            bar.style.width = pct + '%';
+        }
     });
-    event.target.classList.add('active');
-    
-    if (scenario === 'current') {
-        document.getElementById('job1Hours').value = 24;
-        document.getElementById('job2Hours').value = 8;
-        document.getElementById('rent').value = '765';
-        updateRent();
-        setTransport('car');
-        setFood('everyplate');
-        document.getElementById('useSnap').checked = true;
-        document.getElementById('useFoodBank').checked = false;
-        document.getElementById('enrollment').value = 'part';
-    } else if (scenario === 'no-car') {
-        document.getElementById('job1Hours').value = 24;
-        document.getElementById('job2Hours').value = 8;
-        document.getElementById('rent').value = '765';
-        updateRent();
-        setTransport('none');
-        setFood('delivery');
-        document.getElementById('useSnap').checked = true;
-        document.getElementById('useFoodBank').checked = true;
-        document.getElementById('enrollment').value = 'part';
-    } else if (scenario === 'bike') {
-        document.getElementById('job1Hours').value = 24;
-        document.getElementById('job2Hours').value = 8;
-        document.getElementById('rent').value = '765';
-        updateRent();
-        setTransport('bike');
-        setFood('groceries');
-        document.getElementById('useSnap').checked = true;
-        document.getElementById('useFoodBank').checked = true;
-        document.getElementById('enrollment').value = 'part';
-    } else if (scenario === 'school') {
-        document.getElementById('job1Hours').value = 0;
-        document.getElementById('job2Hours').value = 0;
-        document.getElementById('rent').value = '765';
-        updateRent();
-        setTransport('car');
-        setFood('everyplate');
-        document.getElementById('useSnap').checked = true;
-        document.getElementById('useFoodBank').checked = false;
-        document.getElementById('enrollment').value = 'full';
-        document.getElementById('school').value = 'msu';
-        updateSchool();
-    } else if (scenario === 'work') {
-        document.getElementById('job1Hours').value = 40;
-        document.getElementById('job2Hours').value = 0;
-        document.getElementById('rent').value = '765';
-        updateRent();
-        setTransport('car');
-        setFood('everyplate');
-        document.getElementById('useSnap').checked = false;
-        document.getElementById('useFoodBank').checked = false;
-        document.getElementById('enrollment').value = 'none';
-    } else if (scenario === 'save') {
-        document.getElementById('job1Hours').value = 32;
-        document.getElementById('job2Hours').value = 16;
-        document.getElementById('rent').value = '765';
-        updateRent();
-        setTransport('car');
-        setFood('groceries');
-        document.getElementById('useSnap').checked = true;
-        document.getElementById('useFoodBank').checked = true;
-        document.getElementById('enrollment').value = 'none';
-    }
-    
-    calculateAll();
 }
+
+function updateElement(content, id, value) {
+    const el = content.querySelector(`#${id}`);
+    if (el) {
+        el.textContent = value;
+    }
+}
+
+// ============================================
+// Comparison Table
+// ============================================
+
+function updateComparisonTable() {
+    if (!comparisonTableBody) return;
+    
+    // Clear existing rows
+    comparisonTableBody.innerHTML = '';
+    
+    // Add rows for each scenario
+    scenarios.forEach(scenario => {
+        const data = scenario.data || {};
+        const surplus = data.surplus || 0;
+        const annualSurplus = data.annualSurplus || 0;
+        const netIncome = data.netIncome || 0;
+        const fourYear = netIncome * 48 + (surplus * 48);
+        const biggest = data.biggestExpense || 'N/A';
+        const savingsRate = netIncome > 0 ? ((surplus / netIncome) * 100).toFixed(1) + '%' : '0%';
+        const timeTo12k = surplus > 0 ? Math.ceil(12000 / surplus) + ' months' : 'Never';
+        
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${scenario.name}</td>
+            <td class="${surplus >= 0 ? 'positive' : 'negative'}">${formatCurrency(surplus)}</td>
+            <td class="${annualSurplus >= 0 ? 'positive' : 'negative'}">${formatCurrency(annualSurplus)}</td>
+            <td class="${fourYear >= 0 ? 'positive' : 'negative'}">${formatCurrency(fourYear)}</td>
+            <td>${biggest}</td>
+            <td>${savingsRate}</td>
+            <td>${timeTo12k}</td>
+        `;
+        
+        comparisonTableBody.appendChild(row);
+    });
+}
+
+// ============================================
+// State Management
+// ============================================
 
 function saveState() {
-    return {
-        job1Hours: document.getElementById('job1Hours').value,
-        job2Hours: document.getElementById('job2Hours').value,
-        rent: document.getElementById('rent').value,
-        customRent: document.getElementById('customRent').value,
-        transport: transportMode,
-        food: foodMode,
-        useSnap: document.getElementById('useSnap').checked,
-        useFoodBank: document.getElementById('useFoodBank').checked,
-        enrollment: document.getElementById('enrollment').value,
-        school: document.getElementById('school').value
+    const state = {
+        scenarios: scenarios.map(s => ({
+            id: s.id,
+            name: s.name,
+            transportMode: s.transportMode,
+            foodMode: s.foodMode,
+            data: s.data
+        })),
+        nextScenarioId: nextScenarioId,
+        activeScenarioId: activeScenarioId,
+        globalSettings: {
+            taxRate: document.getElementById('globalTaxRate').value,
+            dataCenterCost: document.getElementById('globalDataCenterCost').value,
+            emergencyFund: document.getElementById('globalEmergencyFund').value
+        }
     };
+    
+    localStorage.setItem('lifeCalculatorState', JSON.stringify(state));
 }
 
-function restoreState(state) {
-    document.getElementById('job1Hours').value = state.job1Hours;
-    document.getElementById('job2Hours').value = state.job2Hours;
-    document.getElementById('rent').value = state.rent;
-    document.getElementById('customRent').value = state.customRent;
-    transportMode = state.transport;
-    foodMode = state.food;
-    document.getElementById('useSnap').checked = state.useSnap;
-    document.getElementById('useFoodBank').checked = state.useFoodBank;
-    document.getElementById('enrollment').value = state.enrollment;
-    document.getElementById('school').value = state.school;
+function loadState() {
+    const saved = localStorage.getItem('lifeCalculatorState');
+    if (!saved) return;
     
-    updateRent();
-    
-    // Update toggle buttons
-    document.querySelectorAll('.toggle-btn').forEach(btn => {
-        btn.classList.remove('active');
+    try {
+        const state = JSON.parse(saved);
+        
+        // Restore scenarios
+        scenarios = state.scenarios || [];
+        nextScenarioId = state.nextScenarioId || 1;
+        activeScenarioId = state.activeScenarioId || 0;
+        
+        // Restore global settings
+        if (state.globalSettings) {
+            document.getElementById('globalTaxRate').value = state.globalSettings.taxRate || 16.78;
+            document.getElementById('globalDataCenterCost').value = state.globalSettings.dataCenterCost || 12000;
+            document.getElementById('globalEmergencyFund').value = state.globalSettings.emergencyFund || 12000;
+        }
+        
+        // Recreate tabs and content
+        scenarioTabsContainer.innerHTML = '';
+        scenarioContentContainer.innerHTML = '';
+        
+        scenarios.forEach(scenario => {
+            createScenarioTab(scenario.id, scenario.name);
+            createScenarioContent(scenario.id, scenario.name);
+            
+            // Restore scenario-specific state
+            const scen = getScenario(scenario.id);
+            scen.transportMode = scenario.transportMode || 'car';
+            scen.foodMode = scenario.foodMode || 'everyplate';
+            scen.data = scenario.data || {};
+            
+            // Initialize form
+            initializeScenarioForm(scenario.id);
+        });
+        
+        // Switch to active scenario
+        if (scenarios.length > 0) {
+            switchScenarioTab(activeScenarioId);
+        }
+        
+        // Update comparison table
+        updateComparisonTable();
+        
+    } catch (e) {
+        console.error('Error loading state:', e);
+    }
+}
+
+function updateAllScenarios() {
+    scenarios.forEach(scenario => {
+        calculateScenario(scenario.id);
     });
-    
-    // This is a simplified version - in a real app, you'd need to track which button is active
 }
 
-function calculateAllScenarios() {
-    const currentState = saveState();
-    
-    calculateAll();
-    document.getElementById('compCurrent').textContent = document.getElementById('surplus').textContent;
-    
-    switchScenario('no-car');
-    document.getElementById('compNoCar').textContent = document.getElementById('surplus').textContent;
-    
-    switchScenario('bike');
-    document.getElementById('compBike').textContent = document.getElementById('surplus').textContent;
-    
-    switchScenario('work');
-    document.getElementById('compWork').textContent = document.getElementById('surplus').textContent;
-    
-    switchScenario('school');
-    document.getElementById('compSchool').textContent = document.getElementById('surplus').textContent;
-    
-    restoreState(currentState);
-    calculateAll();
-}
+// ============================================
+// Utility Functions
+// ============================================
+
+// Auto-save on any change
+document.addEventListener('input', () => {
+    saveState();
+});
+
+// Save on page unload
+window.onbeforeunload = () => {
+    saveState();
+};

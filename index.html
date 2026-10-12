@@ -3,434 +3,585 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Life Calculator</title>
+    <title>Life Calculator - Multi-Scenario Financial Planner</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Life Calculator</h1>
-            <p class="subtitle">Financial Planning Tool</p>
+            <h1>💰 Life Calculator Pro</h1>
+            <p class="subtitle">Multi-Scenario Financial Planning with 4-Year Projections</p>
         </header>
-        
-        <div class="section">
-            <h2>Scenarios</h2>
-            <div class="scenario-selector">
-                <button class="scenario-btn active" onclick="switchScenario('current')">Current</button>
-                <button class="scenario-btn" onclick="switchScenario('no-car')">No Car</button>
-                <button class="scenario-btn" onclick="switchScenario('bike')">Bike</button>
-                <button class="scenario-btn" onclick="switchScenario('school')">Full-Time School</button>
-                <button class="scenario-btn" onclick="switchScenario('work')">Full-Time Work</button>
-                <button class="scenario-btn" onclick="switchScenario('save')">Save $12K Fast</button>
+
+        <!-- Scenario Tabs -->
+        <div class="scenario-tabs-container">
+            <div class="scenario-tabs">
+                <button class="scenario-tab active" data-scenario-id="0" onclick="switchScenarioTab(0)">
+                    <span class="tab-icon">📊</span>
+                    <span class="tab-name">Current</span>
+                    <span class="tab-close" onclick="event.stopPropagation(); deleteScenario(0)">×</span>
+                </button>
+            </div>
+            <button class="add-scenario-btn" onclick="addScenario()">+ Add Scenario</button>
+        </div>
+
+        <!-- Scenario Content -->
+        <div class="scenario-content-container">
+            <!-- Scenario content will be inserted here by JavaScript -->
+        </div>
+
+        <!-- Comparison Section -->
+        <div class="comparison-section">
+            <h2>📊 Scenario Comparison</h2>
+            <div class="comparison-table-container">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Scenario</th>
+                            <th>Net Monthly</th>
+                            <th>Annual Surplus</th>
+                            <th>4-Year Projection</th>
+                            <th>Biggest Expense</th>
+                            <th>Savings Rate</th>
+                            <th>Time to $12K</th>
+                        </tr>
+                    </thead>
+                    <tbody id="comparisonTableBody">
+                    </tbody>
+                </table>
             </div>
         </div>
-        
-        <div class="calculator-grid">
-            <div class="section">
-                <h2>Income</h2>
-                <div class="input-group">
-                    <label>Primary Job ($/hr)</label>
-                    <input type="number" id="job1Rate" value="22.50" step="0.01" onchange="calculateAll()">
-                </div>
-                <div class="input-group">
-                    <label>Primary Hours/Week</label>
-                    <input type="number" id="job1Hours" value="24" onchange="calculateAll()">
-                </div>
-                <div class="input-group">
-                    <label>Secondary Job ($/hr)</label>
-                    <input type="number" id="job2Rate" value="18.00" step="0.01" onchange="calculateAll()">
-                </div>
-                <div class="input-group">
-                    <label>Secondary Hours/Week</label>
-                    <input type="number" id="job2Hours" value="8" onchange="calculateAll()">
-                </div>
-                <div class="input-group">
-                    <label>Other Income ($/mo)</label>
-                    <input type="number" id="otherIncome" value="0" onchange="calculateAll()">
-                </div>
+
+        <!-- Global Settings (apply to all scenarios) -->
+        <div class="section global-settings">
+            <h2>⚙️ Global Settings</h2>
+            <div class="settings-grid">
                 <div class="input-group">
                     <label>Tax Rate (%)</label>
-                    <input type="number" id="taxRate" value="16.78" step="0.01" onchange="calculateAll()">
+                    <input type="number" id="globalTaxRate" value="16.78" step="0.01" onchange="updateAllScenarios()">
                 </div>
-                <div class="result-card">
-                    <h3>Monthly Take-Home</h3>
-                    <div class="result-value" id="incomeResult">$0</div>
-                </div>
-            </div>
-            
-            <div class="section">
-                <h2>Housing</h2>
-                <div class="input-group">
-                    <label>Rent ($/mo)</label>
-                    <select id="rent" onchange="updateRent();calculateAll()">
-                        <option value="765">CoLab - $765</option>
-                        <option value="965">CoLab +$200</option>
-                        <option value="1285">CoLab 2BR</option>
-                        <option value="0">Custom</option>
-                    </select>
-                </div>
-                <div class="input-group" id="customRentGroup" style="display:none">
-                    <label>Custom Rent ($)</label>
-                    <input type="number" id="customRent" value="765" onchange="calculateAll()">
-                </div>
-                <div class="input-group">
-                    <label>Utilities ($)</label>
-                    <input type="number" id="utilities" value="100" onchange="calculateAll()">
-                </div>
-                <div class="input-group">
-                    <label>Internet ($)</label>
-                    <input type="number" id="internet" value="80" onchange="calculateAll()">
-                </div>
-                <div class="input-group">
-                    <label>Data Center Electricity ($)</label>
-                    <input type="number" id="electricity" value="200" onchange="calculateAll()">
-                </div>
-            </div>
-            
-            <div class="section">
-                <h2>Transportation</h2>
-                <div class="toggle-group">
-                    <button class="toggle-btn active" onclick="setTransport('car')">Car</button>
-                    <button class="toggle-btn" onclick="setTransport('bike')">Bike</button>
-                    <button class="toggle-btn" onclick="setTransport('rent')">Rent Out</button>
-                    <button class="toggle-btn" onclick="setTransport('none')">None</button>
-                </div>
-                
-                <div id="carFields">
-                    <div class="input-group">
-                        <label>Insurance ($)</label>
-                        <input type="number" id="insurance" value="260" onchange="calculateAll()">
-                    </div>
-                    <div class="input-group">
-                        <label>Gas ($)</label>
-                        <input type="number" id="gas" value="210" onchange="calculateAll()">
-                    </div>
-                    <div class="input-group">
-                        <label>Maintenance ($)</label>
-                        <input type="number" id="maintenance" value="20" onchange="calculateAll()">
-                    </div>
-                    <div class="input-group">
-                        <label>Tires ($)</label>
-                        <input type="number" id="tires" value="16.67" step="0.01" onchange="calculateAll()">
-                    </div>
-                    <div class="input-group">
-                        <label>Parking ($)</label>
-                        <input type="number" id="parking" value="200" onchange="calculateAll()">
-                    </div>
-                </div>
-                
-                <div id="bikeFields" style="display:none">
-                    <div class="input-group">
-                        <label>Bike Cost ($)</label>
-                        <input type="number" id="bikeCost" value="1500" onchange="calculateAll()">
-                    </div>
-                    <div class="input-group">
-                        <label>Bike Insurance ($)</label>
-                        <input type="number" id="bikeInsurance" value="40" onchange="calculateAll()">
-                    </div>
-                    <div class="input-group">
-                        <label>Bike Maintenance ($)</label>
-                        <input type="number" id="bikeMaintenance" value="20" onchange="calculateAll()">
-                    </div>
-                    <div class="input-group">
-                        <label>Bike Lifespan (months)</label>
-                        <input type="number" id="bikeLifespan" value="60" onchange="calculateAll()">
-                    </div>
-                </div>
-                
-                <div id="rentFields" style="display:none">
-                    <div class="input-group">
-                        <label>Rental Income ($)</label>
-                        <input type="number" id="rentalIncome" value="400" onchange="calculateAll()">
-                    </div>
-                    <div class="input-group">
-                        <label>Rental Insurance ($)</label>
-                        <input type="number" id="rentalInsurance" value="50" onchange="calculateAll()">
-                    </div>
-                </div>
-                
-                <div id="noneFields" style="display:none">
-                    <div class="input-group">
-                        <label>Rideshare ($)</label>
-                        <input type="number" id="rideShare" value="200" onchange="calculateAll()">
-                    </div>
-                    <div class="input-group">
-                        <label>Public Transit ($)</label>
-                        <input type="number" id="publicTransit" value="50" onchange="calculateAll()">
-                    </div>
-                    <div class="input-group">
-                        <label>Delivery Fees ($)</label>
-                        <input type="number" id="deliveryFees" value="30" onchange="calculateAll()">
-                    </div>
-                </div>
-                
-                <div class="result-card">
-                    <h3>Transport Cost</h3>
-                    <div class="result-value" id="transportResult">$0</div>
-                </div>
-            </div>
-            
-            <div class="section">
-                <h2>Food</h2>
-                <div class="toggle-group">
-                    <button class="toggle-btn active" onclick="setFood('everyplate')">EveryPlate</button>
-                    <button class="toggle-btn" onclick="setFood('groceries')">Groceries</button>
-                    <button class="toggle-btn" onclick="setFood('delivery')">Delivery</button>
-                </div>
-                
-                <div id="everyplateFields">
-                    <div class="input-group">
-                        <label>EveryPlate ($)</label>
-                        <input type="number" id="everyplateCost" value="560" onchange="calculateAll()">
-                    </div>
-                    <div class="input-group">
-                        <label>Delivery Fee ($)</label>
-                        <input type="number" id="everyplateDelivery" value="11" onchange="calculateAll()">
-                    </div>
-                    <div class="input-group">
-                        <label>GrubHub ($)</label>
-                        <input type="number" id="grubhub" value="100" onchange="calculateAll()">
-                    </div>
-                </div>
-                
-                <div id="groceriesFields" style="display:none">
-                    <div class="input-group">
-                        <label>Grocery Budget ($)</label>
-                        <input type="number" id="groceryBudget" value="400" onchange="calculateAll()">
-                    </div>
-                </div>
-                
-                <div id="deliveryFields" style="display:none">
-                    <div class="input-group">
-                        <label>Delivery Budget ($)</label>
-                        <input type="number" id="deliveryBudget" value="600" onchange="calculateAll()">
-                    </div>
-                    <div class="input-group">
-                        <label>Walmart+ ($)</label>
-                        <input type="number" id="walmartPlus" value="12.95" step="0.01" onchange="calculateAll()">
-                    </div>
-                </div>
-                
-                <div class="input-group">
-                    <label><input type="checkbox" id="useSnap" checked onchange="calculateAll()"> Use SNAP</label>
-                </div>
-                <div class="input-group">
-                    <label>SNAP Benefit ($)</label>
-                    <input type="number" id="snapBenefit" value="306" onchange="calculateAll()">
-                </div>
-                <div class="input-group">
-                    <label><input type="checkbox" id="useFoodBank" onchange="calculateAll()"> Use Food Bank</label>
-                </div>
-                
-                <div class="result-card">
-                    <h3>Food Cost</h3>
-                    <div class="result-value" id="foodResult">$0</div>
-                </div>
-            </div>
-            
-            <div class="section">
-                <h2>Technology</h2>
-                <div class="input-group">
-                    <label>Mac Studio ($)</label>
-                    <input type="number" id="macStudio" value="400" onchange="calculateAll()">
-                </div>
-                <div class="input-group">
-                    <label>Claude Pro ($)</label>
-                    <input type="number" id="claudePro" value="20" onchange="calculateAll()">
-                </div>
-                <div class="input-group">
-                    <label>Phone ($)</label>
-                    <input type="number" id="phone" value="9" onchange="calculateAll()">
-                </div>
-                <div class="input-group">
-                    <label>Starlink ($)</label>
-                    <input type="number" id="starlink" value="0" onchange="calculateAll()">
-                </div>
-                <div class="result-card">
-                    <h3>Tech Cost</h3>
-                    <div class="result-value" id="techResult">$0</div>
-                </div>
-            </div>
-            
-            <div class="section">
-                <h2>Education</h2>
-                <div class="input-group">
-                    <label>School</label>
-                    <select id="school" onchange="updateSchool();calculateAll()">
-                        <option value="current">Current</option>
-                        <option value="msu">MSU</option>
-                        <option value="none">None</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label>Enrollment</label>
-                    <select id="enrollment" onchange="calculateAll()">
-                        <option value="full">Full-Time</option>
-                        <option value="part">Part-Time</option>
-                        <option value="none">None</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label>Annual Tuition ($)</label>
-                    <input type="number" id="tuition" value="11550" onchange="calculateAll()">
-                </div>
-                <div class="input-group">
-                    <label>Books & Supplies ($/yr)</label>
-                    <input type="number" id="books" value="1200" onchange="calculateAll()">
-                </div>
-                <div class="input-group">
-                    <label>FAFSA Grant ($/yr)</label>
-                    <input type="number" id="fafsaGrant" value="7395" onchange="calculateAll()">
-                </div>
-                <div class="input-group">
-                    <label>COF Stipend ($/yr)</label>
-                    <input type="number" id="cofStipend" value="0" onchange="calculateAll()">
-                </div>
-                <div class="input-group">
-                    <label>FAFSA Loan ($/yr)</label>
-                    <input type="number" id="fafsaLoan" value="0" onchange="calculateAll()">
-                </div>
-                <div class="result-card">
-                    <h3>Education Cost</h3>
-                    <div class="result-value" id="educationResult">$0</div>
-                </div>
-            </div>
-            
-            <div class="section">
-                <h2>Other Expenses</h2>
-                <div class="input-group">
-                    <label>Health Insurance ($)</label>
-                    <input type="number" id="healthInsurance" value="0" onchange="calculateAll()">
-                </div>
-                <div class="input-group">
-                    <label>Medical ($)</label>
-                    <input type="number" id="medical" value="50" onchange="calculateAll()">
-                </div>
-                <div class="input-group">
-                    <label>Entertainment ($)</label>
-                    <input type="number" id="entertainment" value="100" onchange="calculateAll()">
-                </div>
-                <div class="input-group">
-                    <label>Clothing ($)</label>
-                    <input type="number" id="clothing" value="50" onchange="calculateAll()">
-                </div>
-                <div class="input-group">
-                    <label>Miscellaneous ($)</label>
-                    <input type="number" id="miscellaneous" value="100" onchange="calculateAll()">
-                </div>
-                <div class="result-card">
-                    <h3>Other Cost</h3>
-                    <div class="result-value" id="otherResult">$0</div>
-                </div>
-            </div>
-            
-            <div class="section">
-                <h2>Benefits</h2>
-                <div class="input-group">
-                    <label><input type="checkbox" id="medicaid" checked onchange="calculateAll()"> Medicaid</label>
-                </div>
-                <div class="input-group">
-                    <label>Medicaid Savings ($)</label>
-                    <input type="number" id="medicaidSavings" value="200" onchange="calculateAll()">
-                </div>
-                <div class="input-group">
-                    <label>Other Benefits ($)</label>
-                    <input type="number" id="otherBenefits" value="0" onchange="calculateAll()">
-                </div>
-                <div class="result-card">
-                    <h3>Total Benefits</h3>
-                    <div class="result-value" id="benefitsResult">$0</div>
-                </div>
-            </div>
-            
-            <div class="section">
-                <h2>Savings Goals</h2>
                 <div class="input-group">
                     <label>Data Center Cost ($)</label>
-                    <input type="number" id="dataCenterCost" value="12000" onchange="calculateAll()">
+                    <input type="number" id="globalDataCenterCost" value="12000" onchange="updateAllScenarios()">
                 </div>
                 <div class="input-group">
                     <label>Emergency Fund Goal ($)</label>
-                    <input type="number" id="emergencyFund" value="12000" onchange="calculateAll()">
-                </div>
-                <div class="input-group">
-                    <label>Current Savings ($)</label>
-                    <input type="number" id="currentSavings" value="0" onchange="calculateAll()">
-                </div>
-                <div class="result-card">
-                    <h3>Time to Save $12K</h3>
-                    <div class="result-value" id="timeToSave">0 months</div>
-                </div>
-                <div class="result-card">
-                    <h3>Monthly Savings Rate</h3>
-                    <div class="result-value" id="savingsRate">$0</div>
+                    <input type="number" id="globalEmergencyFund" value="12000" onchange="updateAllScenarios()">
                 </div>
             </div>
-        </div>
-        
-        <div class="results-section">
-            <h2>Financial Summary</h2>
-            <div class="results-grid">
-                <div class="result-card">
-                    <h3>Net Income</h3>
-                    <div class="result-value" id="netIncome">$0</div>
-                </div>
-                <div class="result-card">
-                    <h3>Total Expenses</h3>
-                    <div class="result-value" id="totalExpenses">$0</div>
-                </div>
-                <div class="result-card">
-                    <h3>Monthly Surplus</h3>
-                    <div class="result-value" id="surplus">$0</div>
-                </div>
-                <div class="result-card">
-                    <h3>Annual Surplus</h3>
-                    <div class="result-value" id="annualSurplus">$0</div>
-                </div>
-                <div class="result-card">
-                    <h3>Savings Rate</h3>
-                    <div class="result-value" id="savingsRatePct">0%</div>
-                </div>
-                <div class="result-card">
-                    <h3>4-Year Debt</h3>
-                    <div class="result-value" id="debt4Year">$0</div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="section">
-            <h2>Scenario Comparison</h2>
-            <button onclick="calculateAllScenarios()">Calculate All Scenarios</button>
-            <div class="comparison-grid">
-                <div class="comparison-item">
-                    <h4>Current</h4>
-                    <div id="compCurrent">$0</div>
-                </div>
-                <div class="comparison-item">
-                    <h4>No Car</h4>
-                    <div id="compNoCar">$0</div>
-                </div>
-                <div class="comparison-item">
-                    <h4>Bike</h4>
-                    <div id="compBike">$0</div>
-                </div>
-                <div class="comparison-item">
-                    <h4>Full-Time Work</h4>
-                    <div id="compWork">$0</div>
-                </div>
-                <div class="comparison-item">
-                    <h4>Full-Time School</h4>
-                    <div id="compSchool">$0</div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="section">
-            <h2>Insights</h2>
-            <div id="insights"></div>
         </div>
     </div>
-    
+
+    <!-- Scenario Template (Hidden) -->
+    <div id="scenarioTemplate" style="display: none;">
+        <div class="scenario-content" data-scenario-id="__ID__">
+            <div class="scenario-header">
+                <input type="text" class="scenario-name-input" value="__NAME__" 
+                       onchange="renameScenario(__ID__, this.value)" placeholder="Scenario Name">
+                <div class="scenario-actions">
+                    <button onclick="duplicateScenario(__ID__)" class="btn-icon" title="Duplicate">📋</button>
+                    <button onclick="deleteScenario(__ID__)" class="btn-icon" title="Delete">🗑️</button>
+                </div>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="scenario-summary">
+                <div class="summary-card">
+                    <h3>Monthly Net</h3>
+                    <div class="summary-value" id="scenario-__ID__-net">$0</div>
+                    <div class="summary-label">After all expenses</div>
+                </div>
+                <div class="summary-card">
+                    <h3>Annual Surplus</h3>
+                    <div class="summary-value" id="scenario-__ID__-annual">$0</div>
+                    <div class="summary-label">Projected yearly</div>
+                </div>
+                <div class="summary-card">
+                    <h3>4-Year Projection</h3>
+                    <div class="summary-value" id="scenario-__ID__-4year">$0</div>
+                    <div class="summary-label" id="scenario-__ID__-4year-label">Net position</div>
+                </div>
+                <div class="summary-card">
+                    <h3>Time to $12K</h3>
+                    <div class="summary-value" id="scenario-__ID__-time">0 months</div>
+                    <div class="summary-label">Savings goal</div>
+                </div>
+            </div>
+
+            <!-- 4-Year Projection Chart -->
+            <div class="section">
+                <h2>📈 4-Year Financial Projection</h2>
+                <div class="projection-chart" id="scenario-__ID__-projection">
+                    <div class="projection-grid">
+                        <div class="projection-header">
+                            <div>Year</div>
+                            <div>Savings</div>
+                            <div>Debt</div>
+                            <div>Net Worth</div>
+                        </div>
+                        <div class="projection-row" data-year="1">
+                            <div>Year 1</div>
+                            <div id="scenario-__ID__-savings-y1">$0</div>
+                            <div id="scenario-__ID__-debt-y1">$0</div>
+                            <div id="scenario-__ID__-networth-y1">$0</div>
+                        </div>
+                        <div class="projection-row" data-year="2">
+                            <div>Year 2</div>
+                            <div id="scenario-__ID__-savings-y2">$0</div>
+                            <div id="scenario-__ID__-debt-y2">$0</div>
+                            <div id="scenario-__ID__-networth-y2">$0</div>
+                        </div>
+                        <div class="projection-row" data-year="3">
+                            <div>Year 3</div>
+                            <div id="scenario-__ID__-savings-y3">$0</div>
+                            <div id="scenario-__ID__-debt-y3">$0</div>
+                            <div id="scenario-__ID__-networth-y3">$0</div>
+                        </div>
+                        <div class="projection-row" data-year="4">
+                            <div>Year 4</div>
+                            <div id="scenario-__ID__-savings-y4">$0</div>
+                            <div id="scenario-__ID__-debt-y4">$0</div>
+                            <div id="scenario-__ID__-networth-y4">$0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Spend Analyzer -->
+            <div class="section">
+                <h2>💸 Spend Analyzer</h2>
+                <div class="spend-analyzer" id="scenario-__ID__-spend">
+                    <div class="spend-chart" id="scenario-__ID__-spend-chart"></div>
+                    <div class="spend-breakdown" id="scenario-__ID__-spend-breakdown">
+                        <div class="spend-item">
+                            <div class="spend-label">Housing</div>
+                            <div class="spend-bar-container">
+                                <div class="spend-bar" id="scenario-__ID__-spend-housing-bar" style="width: 0%"></div>
+                            </div>
+                            <div class="spend-percent" id="scenario-__ID__-spend-housing-pct">0%</div>
+                            <div class="spend-amount" id="scenario-__ID__-spend-housing-amt">$0</div>
+                        </div>
+                        <div class="spend-item">
+                            <div class="spend-label">Transportation</div>
+                            <div class="spend-bar-container">
+                                <div class="spend-bar" id="scenario-__ID__-spend-transport-bar" style="width: 0%"></div>
+                            </div>
+                            <div class="spend-percent" id="scenario-__ID__-spend-transport-pct">0%</div>
+                            <div class="spend-amount" id="scenario-__ID__-spend-transport-amt">$0</div>
+                        </div>
+                        <div class="spend-item">
+                            <div class="spend-label">Food</div>
+                            <div class="spend-bar-container">
+                                <div class="spend-bar" id="scenario-__ID__-spend-food-bar" style="width: 0%"></div>
+                            </div>
+                            <div class="spend-percent" id="scenario-__ID__-spend-food-pct">0%</div>
+                            <div class="spend-amount" id="scenario-__ID__-spend-food-amt">$0</div>
+                        </div>
+                        <div class="spend-item">
+                            <div class="spend-label">Technology</div>
+                            <div class="spend-bar-container">
+                                <div class="spend-bar" id="scenario-__ID__-spend-tech-bar" style="width: 0%"></div>
+                            </div>
+                            <div class="spend-percent" id="scenario-__ID__-spend-tech-pct">0%</div>
+                            <div class="spend-amount" id="scenario-__ID__-spend-tech-amt">$0</div>
+                        </div>
+                        <div class="spend-item">
+                            <div class="spend-label">Education</div>
+                            <div class="spend-bar-container">
+                                <div class="spend-bar" id="scenario-__ID__-spend-education-bar" style="width: 0%"></div>
+                            </div>
+                            <div class="spend-percent" id="scenario-__ID__-spend-education-pct">0%</div>
+                            <div class="spend-amount" id="scenario-__ID__-spend-education-amt">$0</div>
+                        </div>
+                        <div class="spend-item">
+                            <div class="spend-label">Other</div>
+                            <div class="spend-bar-container">
+                                <div class="spend-bar" id="scenario-__ID__-spend-other-bar" style="width: 0%"></div>
+                            </div>
+                            <div class="spend-percent" id="scenario-__ID__-spend-other-pct">0%</div>
+                            <div class="spend-amount" id="scenario-__ID__-spend-other-amt">$0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Sections -->
+            <div class="input-sections">
+                <!-- Income -->
+                <div class="section">
+                    <h2>💵 Income</h2>
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label>Primary Job ($/hr)</label>
+                            <input type="number" class="job1Rate" value="22.50" step="0.01" onchange="calculateScenario(__ID__)">
+                        </div>
+                        <div class="input-group">
+                            <label>Primary Hours/Week</label>
+                            <input type="number" class="job1Hours" value="24" onchange="calculateScenario(__ID__)">
+                        </div>
+                        <div class="input-group">
+                            <label>Secondary Job ($/hr)</label>
+                            <input type="number" class="job2Rate" value="18.00" step="0.01" onchange="calculateScenario(__ID__)">
+                        </div>
+                        <div class="input-group">
+                            <label>Secondary Hours/Week</label>
+                            <input type="number" class="job2Hours" value="8" onchange="calculateScenario(__ID__)">
+                        </div>
+                        <div class="input-group full-width">
+                            <label>Other Income ($/mo)</label>
+                            <input type="number" class="otherIncome" value="0" onchange="calculateScenario(__ID__)">
+                        </div>
+                    </div>
+                    <div class="result-card inline">
+                        <h3>Monthly Take-Home</h3>
+                        <div class="result-value" id="scenario-__ID__-income">$0</div>
+                    </div>
+                </div>
+
+                <!-- Housing -->
+                <div class="section">
+                    <h2>🏠 Housing</h2>
+                    <div class="input-grid">
+                        <div class="input-group full-width">
+                            <label>Rent ($/mo)</label>
+                            <select class="rent" onchange="updateRent(__ID__);calculateScenario(__ID__)">
+                                <option value="765">CoLab - $765</option>
+                                <option value="965">CoLab +$200</option>
+                                <option value="1285">CoLab 2BR</option>
+                                <option value="0">Custom</option>
+                            </select>
+                        </div>
+                        <div class="input-group full-width" id="scenario-__ID__-customRentGroup" style="display:none">
+                            <label>Custom Rent ($)</label>
+                            <input type="number" class="customRent" value="765" onchange="calculateScenario(__ID__)">
+                        </div>
+                        <div class="input-group">
+                            <label>Utilities ($)</label>
+                            <input type="number" class="utilities" value="100" onchange="calculateScenario(__ID__)">
+                        </div>
+                        <div class="input-group">
+                            <label>Internet ($)</label>
+                            <input type="number" class="internet" value="80" onchange="calculateScenario(__ID__)">
+                        </div>
+                        <div class="input-group">
+                            <label>Data Center Electricity ($)</label>
+                            <input type="number" class="electricity" value="200" onchange="calculateScenario(__ID__)">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transportation -->
+                <div class="section">
+                    <h2>🚗 Transportation</h2>
+                    <div class="toggle-group">
+                        <button class="toggle-btn active" onclick="setTransport(__ID__, 'car');event.stopPropagation()">Car</button>
+                        <button class="toggle-btn" onclick="setTransport(__ID__, 'bike');event.stopPropagation()">Bike</button>
+                        <button class="toggle-btn" onclick="setTransport(__ID__, 'rent');event.stopPropagation()">Rent Out</button>
+                        <button class="toggle-btn" onclick="setTransport(__ID__, 'none');event.stopPropagation()">None</button>
+                    </div>
+                    
+                    <div class="transport-fields" id="scenario-__ID__-carFields">
+                        <div class="input-grid">
+                            <div class="input-group">
+                                <label>Insurance ($)</label>
+                                <input type="number" class="insurance" value="260" onchange="calculateScenario(__ID__)">
+                            </div>
+                            <div class="input-group">
+                                <label>Gas ($)</label>
+                                <input type="number" class="gas" value="210" onchange="calculateScenario(__ID__)">
+                            </div>
+                            <div class="input-group">
+                                <label>Maintenance ($)</label>
+                                <input type="number" class="maintenance" value="20" onchange="calculateScenario(__ID__)">
+                            </div>
+                            <div class="input-group">
+                                <label>Tires ($)</label>
+                                <input type="number" class="tires" value="16.67" step="0.01" onchange="calculateScenario(__ID__)">
+                            </div>
+                            <div class="input-group">
+                                <label>Parking ($)</label>
+                                <input type="number" class="parking" value="200" onchange="calculateScenario(__ID__)">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="transport-fields hidden" id="scenario-__ID__-bikeFields">
+                        <div class="input-grid">
+                            <div class="input-group">
+                                <label>Bike Cost ($)</label>
+                                <input type="number" class="bikeCost" value="1500" onchange="calculateScenario(__ID__)">
+                            </div>
+                            <div class="input-group">
+                                <label>Bike Insurance ($)</label>
+                                <input type="number" class="bikeInsurance" value="40" onchange="calculateScenario(__ID__)">
+                            </div>
+                            <div class="input-group">
+                                <label>Bike Maintenance ($)</label>
+                                <input type="number" class="bikeMaintenance" value="20" onchange="calculateScenario(__ID__)">
+                            </div>
+                            <div class="input-group">
+                                <label>Bike Lifespan (months)</label>
+                                <input type="number" class="bikeLifespan" value="60" onchange="calculateScenario(__ID__)">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="transport-fields hidden" id="scenario-__ID__-rentFields">
+                        <div class="input-grid">
+                            <div class="input-group">
+                                <label>Rental Income ($)</label>
+                                <input type="number" class="rentalIncome" value="400" onchange="calculateScenario(__ID__)">
+                            </div>
+                            <div class="input-group">
+                                <label>Rental Insurance ($)</label>
+                                <input type="number" class="rentalInsurance" value="50" onchange="calculateScenario(__ID__)">
+                            </div>
+                            <div class="input-group">
+                                <label>Rental Maintenance ($)</label>
+                                <input type="number" class="rentalMaintenance" value="50" onchange="calculateScenario(__ID__)">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="transport-fields hidden" id="scenario-__ID__-noneFields">
+                        <div class="input-grid">
+                            <div class="input-group">
+                                <label>Rideshare ($)</label>
+                                <input type="number" class="rideShare" value="200" onchange="calculateScenario(__ID__)">
+                            </div>
+                            <div class="input-group">
+                                <label>Public Transit ($)</label>
+                                <input type="number" class="publicTransit" value="50" onchange="calculateScenario(__ID__)">
+                            </div>
+                            <div class="input-group">
+                                <label>Delivery Fees ($)</label>
+                                <input type="number" class="deliveryFees" value="30" onchange="calculateScenario(__ID__)">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="result-card inline">
+                        <h3>Transport Cost</h3>
+                        <div class="result-value" id="scenario-__ID__-transport">$0</div>
+                    </div>
+                </div>
+
+                <!-- Food -->
+                <div class="section">
+                    <h2>🍽️ Food</h2>
+                    <div class="toggle-group">
+                        <button class="toggle-btn active" onclick="setFood(__ID__, 'everyplate');event.stopPropagation()">EveryPlate</button>
+                        <button class="toggle-btn" onclick="setFood(__ID__, 'groceries');event.stopPropagation()">Groceries</button>
+                        <button class="toggle-btn" onclick="setFood(__ID__, 'delivery');event.stopPropagation()">Delivery</button>
+                    </div>
+                    
+                    <div class="food-fields" id="scenario-__ID__-everyplateFields">
+                        <div class="input-grid">
+                            <div class="input-group">
+                                <label>EveryPlate ($)</label>
+                                <input type="number" class="everyplateCost" value="560" onchange="calculateScenario(__ID__)">
+                            </div>
+                            <div class="input-group">
+                                <label>Delivery Fee ($)</label>
+                                <input type="number" class="everyplateDelivery" value="11" onchange="calculateScenario(__ID__)">
+                            </div>
+                            <div class="input-group">
+                                <label>GrubHub ($)</label>
+                                <input type="number" class="grubhub" value="100" onchange="calculateScenario(__ID__)">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="food-fields hidden" id="scenario-__ID__-groceriesFields">
+                        <div class="input-grid">
+                            <div class="input-group full-width">
+                                <label>Grocery Budget ($)</label>
+                                <input type="number" class="groceryBudget" value="400" onchange="calculateScenario(__ID__)">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="food-fields hidden" id="scenario-__ID__-deliveryFields">
+                        <div class="input-grid">
+                            <div class="input-group">
+                                <label>Delivery Budget ($)</label>
+                                <input type="number" class="deliveryBudget" value="600" onchange="calculateScenario(__ID__)">
+                            </div>
+                            <div class="input-group">
+                                <label>Walmart+ ($)</label>
+                                <input type="number" class="walmartPlus" value="12.95" step="0.01" onchange="calculateScenario(__ID__)">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label><input type="checkbox" class="useSnap" checked onchange="calculateScenario(__ID__)"> Use SNAP</label>
+                        </div>
+                        <div class="input-group">
+                            <label>SNAP Benefit ($)</label>
+                            <input type="number" class="snapBenefit" value="306" onchange="calculateScenario(__ID__)">
+                        </div>
+                        <div class="input-group">
+                            <label><input type="checkbox" class="useFoodBank" onchange="calculateScenario(__ID__)"> Use Food Bank</label>
+                        </div>
+                    </div>
+                    
+                    <div class="result-card inline">
+                        <h3>Food Cost</h3>
+                        <div class="result-value" id="scenario-__ID__-food">$0</div>
+                    </div>
+                </div>
+
+                <!-- Technology -->
+                <div class="section">
+                    <h2>💻 Technology</h2>
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label>Mac Studio ($)</label>
+                            <input type="number" class="macStudio" value="400" onchange="calculateScenario(__ID__)">
+                        </div>
+                        <div class="input-group">
+                            <label>Claude Pro ($)</label>
+                            <input type="number" class="claudePro" value="20" onchange="calculateScenario(__ID__)">
+                        </div>
+                        <div class="input-group">
+                            <label>Phone ($)</label>
+                            <input type="number" class="phone" value="9" onchange="calculateScenario(__ID__)">
+                        </div>
+                        <div class="input-group">
+                            <label>Starlink ($)</label>
+                            <input type="number" class="starlink" value="0" onchange="calculateScenario(__ID__)">
+                        </div>
+                    </div>
+                    <div class="result-card inline">
+                        <h3>Tech Cost</h3>
+                        <div class="result-value" id="scenario-__ID__-tech">$0</div>
+                    </div>
+                </div>
+
+                <!-- Education -->
+                <div class="section">
+                    <h2>🎓 Education</h2>
+                    <div class="input-grid">
+                        <div class="input-group full-width">
+                            <label>School</label>
+                            <select class="school" onchange="updateSchool(__ID__);calculateScenario(__ID__)">
+                                <option value="current">Current School</option>
+                                <option value="msu">MSU</option>
+                                <option value="none">None</option>
+                            </select>
+                        </div>
+                        <div class="input-group full-width">
+                            <label>Enrollment</label>
+                            <select class="enrollment" onchange="calculateScenario(__ID__)">
+                                <option value="full">Full-Time</option>
+                                <option value="part">Part-Time</option>
+                                <option value="none">None</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Annual Tuition ($)</label>
+                            <input type="number" class="tuition" value="11550" onchange="calculateScenario(__ID__)">
+                        </div>
+                        <div class="input-group">
+                            <label>Books & Supplies ($/yr)</label>
+                            <input type="number" class="books" value="1200" onchange="calculateScenario(__ID__)">
+                        </div>
+                        <div class="input-group">
+                            <label>FAFSA Grant ($/yr)</label>
+                            <input type="number" class="fafsaGrant" value="7395" onchange="calculateScenario(__ID__)">
+                        </div>
+                        <div class="input-group">
+                            <label>COF Stipend ($/yr)</label>
+                            <input type="number" class="cofStipend" value="0" onchange="calculateScenario(__ID__)">
+                        </div>
+                        <div class="input-group">
+                            <label>FAFSA Loan ($/yr)</label>
+                            <input type="number" class="fafsaLoan" value="0" onchange="calculateScenario(__ID__)">
+                        </div>
+                        <div class="input-group">
+                            <label>Loan Interest (%)</label>
+                            <input type="number" class="loanInterest" value="4.5" step="0.01" onchange="calculateScenario(__ID__)">
+                        </div>
+                        <div class="input-group">
+                            <label>Years in School</label>
+                            <input type="number" class="schoolYears" value="4" onchange="calculateScenario(__ID__)">
+                        </div>
+                    </div>
+                    <div class="result-card inline">
+                        <h3>Education Cost</h3>
+                        <div class="result-value" id="scenario-__ID__-education">$0</div>
+                    </div>
+                </div>
+
+                <!-- Other Expenses -->
+                <div class="section">
+                    <h2>💳 Other Expenses</h2>
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label>Health Insurance ($)</label>
+                            <input type="number" class="healthInsurance" value="0" onchange="calculateScenario(__ID__)">
+                        </div>
+                        <div class="input-group">
+                            <label>Medical ($)</label>
+                            <input type="number" class="medical" value="50" onchange="calculateScenario(__ID__)">
+                        </div>
+                        <div class="input-group">
+                            <label>Entertainment ($)</label>
+                            <input type="number" class="entertainment" value="100" onchange="calculateScenario(__ID__)">
+                        </div>
+                        <div class="input-group">
+                            <label>Clothing ($)</label>
+                            <input type="number" class="clothing" value="50" onchange="calculateScenario(__ID__)">
+                        </div>
+                        <div class="input-group">
+                            <label>Miscellaneous ($)</label>
+                            <input type="number" class="miscellaneous" value="100" onchange="calculateScenario(__ID__)">
+                        </div>
+                    </div>
+                    <div class="result-card inline">
+                        <h3>Other Cost</h3>
+                        <div class="result-value" id="scenario-__ID__-other">$0</div>
+                    </div>
+                </div>
+
+                <!-- Benefits -->
+                <div class="section">
+                    <h2>🏥 Benefits</h2>
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label><input type="checkbox" class="medicaid" checked onchange="calculateScenario(__ID__)"> Medicaid</label>
+                        </div>
+                        <div class="input-group">
+                            <label>Medicaid Savings ($)</label>
+                            <input type="number" class="medicaidSavings" value="200" onchange="calculateScenario(__ID__)">
+                        </div>
+                        <div class="input-group">
+                            <label>Other Benefits ($)</label>
+                            <input type="number" class="otherBenefits" value="0" onchange="calculateScenario(__ID__)">
+                        </div>
+                    </div>
+                    <div class="result-card inline">
+                        <h3>Total Benefits</h3>
+                        <div class="result-value" id="scenario-__ID__-benefits">$0</div>
+                    </div>
+                </div>
+
+                <!-- Savings Goals -->
+                <div class="section">
+                    <h2>🎯 Savings Goals</h2>
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label>Current Savings ($)</label>
+                            <input type="number" class="currentSavings" value="0" onchange="calculateScenario(__ID__)">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="calculator.js"></script>
 </body>
 </html>
